@@ -77,7 +77,8 @@ async def cmd_start(message: Message, state: FSMContext):
     await message.answer("👋 Привет! Salom!\n\nВыберите действие: Amalni tanlang:", reply_markup=kb)
     await state.clear()
 
-@router.message(F.text == '🚀 Заказать/Buyurtma berish')
+# 🛠 Исправлено: поддержка всех возможных вариантов текста кнопки "Заказать"
+@router.message(F.text.in_(['🚀 Заказать/Buyurtma berish', 'Заказать', 'Buyurtma berish']))
 async def start_order(message: Message, state: FSMContext):
     kb = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text='🇷🇺 Русский'), KeyboardButton(text='🇺🇿 Oʻzbekcha')]],
