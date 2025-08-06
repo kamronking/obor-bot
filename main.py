@@ -151,7 +151,7 @@ async def contact_received(message: Message, state: FSMContext):
     lang = LANGUAGE.get(message.from_user.id, 'ru')
     kb = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text='🚀 Заказать')],
+            [KeyboardButton(text='🚀 Заказать/Buyurtma berish')],
             [KeyboardButton(text='📞 Помощь / Yordam'), KeyboardButton(text='💸 Тарифы / Narxlar')],
             [KeyboardButton(text='ℹ️ Кто мы / Biz kim')]
         ],
