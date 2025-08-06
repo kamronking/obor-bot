@@ -32,10 +32,10 @@ TEXTS = {
         'restart': '🔁 Начать заново',
         'order_cancelled': '❌ Заказ отменён.',
         'no_orders': '📊 Заказов пока нет.',
-        'stats': '📈 Всего заказов: {count}\nОбщая сумма: {total} сум',
-        'help_text': '📞 Телефон для связи: +998 90 402 17 11',
-        'tariff_text': '💸 Стоимость доставки:\n▫️ Базовая цена — 7000 сум\n▫️ Плюс 1000 сум за каждый км',
-        'about_us': '📖 <b>Кто мы?</b>\n\nМы — команда Obor. Наша цель — сделать доставку в Гулистане быстрой, удобной и доступной. Мы доставляем всё: еду, товары, документы и многое другое.',
+        'stats': '📈 Всего заказов: {count}\nОбщая сумма: {total} сум. ',
+        'help_text': '🇷🇺 📞 Телефон для связи: +998 90 402 17 11. 🇺🇿 📞 Aloqa raqami: +998 90 402 17 11.',
+        'tariff_text': '💸 Стоимость доставки:\n 🇷🇺 ▫️ Базовая цена — 7000 сум\n▫️ Плюс 1000 сум за каждый км.🇺🇿 💸 Yetkazib berish narxi:\n▫️ Asosiy narx — 7000 so‘m\n▫️ Har bir km uchun qo‘shimcha — 1000 so‘m',
+        'about_us': '📖 <b>Кто мы?</b>\n\n🇷🇺 Мы — команда Obor. Наша цель — сделать доставку в Гулистане быстрой, удобной и доступной. Мы доставляем всё: еду, товары, документы и многое другое. 🇺🇿 Biz — Obor jamoasimiz. Maqsadimiz — Gulistonda yetkazib berishni tez, qulay va arzon qilish. Biz hamma narsani yetkazamiz: ovqat, mahsulotlar, hujjatlar va boshqalar.',
     },
     'uz': {
         'welcome': '👋 Salom! Men — <b>Obor</b> yetkazib berish boti!\n\nIltimos, xizmat tilini tanlang:',
@@ -50,9 +50,9 @@ TEXTS = {
         'order_cancelled': '❌ Buyurtma bekor qilindi.',
         'no_orders': '📊 Hozircha buyurtmalar yo‘q.',
         'stats': '📈 Jami buyurtmalar: {count}\nUmumiy summa: {total} so‘m',
-        'help_text': '📞 Aloqa raqami: +998 90 402 17 11',
-        'tariff_text': '💸 Yetkazib berish narxi:\n▫️ Asosiy narx — 7000 so‘m\n▫️ Har bir km uchun qo‘shimcha — 1000 so‘m',
-        'about_us': '📖 <b>Biz kim?</b>\n\nBiz — Obor jamoasimiz. Maqsadimiz — Gulistonda yetkazib berishni tez, qulay va arzon qilish. Biz hamma narsani yetkazamiz: ovqat, mahsulotlar, hujjatlar va boshqalar.',
+        'help_text': ' 🇺🇿 📞 Aloqa raqami: +998 90 402 17 11. 🇷🇺  📞 Телефон для связи: +998 90 402 17 11',
+        'tariff_text': '💸 Yetkazib berish narxi:\n 🇺🇿 ▫️ Asosiy narx — 7000 so‘m\n▫️ Har bir km uchun qo‘shimcha — 1000 so‘m. 💸 Стоимость доставки:\n 🇷🇺 ▫️ Базовая цена — 7000 сум\n▫️ Плюс 1000 сум за каждый км.',
+        'about_us': '📖 <b>Biz kim?</b>\n\n🇺🇿 Biz — Obor jamoasimiz. Maqsadimiz — Gulistonda yetkazib berishni tez, qulay va arzon qilish. Biz hamma narsani yetkazamiz: ovqat, mahsulotlar, hujjatlar va boshqalar. 🇷🇺 Мы — команда Obor. Наша цель — сделать доставку в Гулистане быстрой, удобной и доступной. Мы доставляем всё: еду, товары, документы и многое другое.',
     }
 }
 
