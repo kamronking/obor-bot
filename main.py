@@ -1,7 +1,6 @@
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import CommandStart
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
-from aiogram.enums import ContentType
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.state import State, StatesGroup
@@ -26,8 +25,6 @@ TEXTS = {
         'ask_where_from': '🛒 Откуда привезти товар? Напишите заведение или адрес.',
         'ask_what': '📦 Что нужно привезти?',
         'ask_dropoff': '📍 Пожалуйста, отправьте локацию, куда доставить.',
-        'ask_price': '💰 Напишите цену доставки (минимум 5000 сум):\n(Если это вне города, цена может быть выше)',
-        'price_too_low': '❗️Минимальная сумма заказа — 5000 сум.',
         'ask_name': '🙋‍♂️ Как вас зовут?',
         'ask_phone': '📱 Пожалуйста, отправьте номер телефона кнопкой ниже:',
         'confirm': '✅ Спасибо! Ваш заказ принят!\nНомер заказа: <b>#{id}</b>\nВремя: <b>{time}</b>\nСкоро свяжемся!',
@@ -36,15 +33,15 @@ TEXTS = {
         'order_cancelled': '❌ Заказ отменён.',
         'no_orders': '📊 Заказов пока нет.',
         'stats': '📈 Всего заказов: {count}\nОбщая сумма: {total} сум',
-        'help_text': '📞 Телефон для связи: +998 90 402 17 11'
+        'help_text': '📞 Телефон для связи: +998 90 402 17 11',
+        'tariff_text': '💸 Стоимость доставки:\n▫️ Базовая цена — 7000 сум\n▫️ Плюс 1000 сум за каждый км',
+        'about_us': '📖 <b>Кто мы?</b>\n\nМы — команда Obor. Наша цель — сделать доставку в Гулистане быстрой, удобной и доступной. Мы доставляем всё: еду, товары, документы и многое другое.',
     },
     'uz': {
         'welcome': '👋 Salom! Men — <b>Obor</b> yetkazib berish boti!\n\nIltimos, xizmat tilini tanlang:',
         'ask_where_from': '🛒 Mahsulotni qayerdan olib kelish kerak? Joy nomini yozing.',
         'ask_what': '📦 Nima olib kelish kerak?',
         'ask_dropoff': '📍 Iltimos, qayerga yetkazish kerakligini lokatsiya orqali yuboring.',
-        'ask_price': '💰 Yetkazib berish narxini yozing (minimal 5000 so‘m):\n(Agar bu shahar tashqarisida bo‘lsa, narx ko‘proq bo‘lishi mumkin)',
-        'price_too_low': '❗️Minimal buyurtma summasi — 5000 so‘m.',
         'ask_name': '🙋‍♂️ Ismingiz nima?',
         'ask_phone': '📱 Telefon raqamingizni quyidagi tugma orqali yuboring:',
         'confirm': '✅ Rahmat! Buyurtmangiz qabul qilindi!\nBuyurtma raqami: <b>#{id}</b>\nVaqti: <b>{time}</b>\nTez orada bog‘lanamiz!',
@@ -53,67 +50,49 @@ TEXTS = {
         'order_cancelled': '❌ Buyurtma bekor qilindi.',
         'no_orders': '📊 Hozircha buyurtmalar yo‘q.',
         'stats': '📈 Jami buyurtmalar: {count}\nUmumiy summa: {total} so‘m',
-        'help_text': '📞 Aloqa raqami: +998 90 402 17 11'
+        'help_text': '📞 Aloqa raqami: +998 90 402 17 11',
+        'tariff_text': '💸 Yetkazib berish narxi:\n▫️ Asosiy narx — 7000 so‘m\n▫️ Har bir km uchun qo‘shimcha — 1000 so‘m',
+        'about_us': '📖 <b>Biz kim?</b>\n\nBiz — Obor jamoasimiz. Maqsadimiz — Gulistonda yetkazib berishni tez, qulay va arzon qilish. Biz hamma narsani yetkazamiz: ovqat, mahsulotlar, hujjatlar va boshqalar.',
     }
 }
-
 
 class OrderForm(StatesGroup):
     ChoosingLanguage = State()
     WaitingForSource = State()
     WaitingForWhat = State()
     WaitingForDropoff = State()
-    WaitingForPrice = State()
     WaitingForName = State()
     WaitingForPhone = State()
-
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     kb = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text='🇷🇺 Русский'), KeyboardButton(text='🇺🇿 Oʻzbekcha')],
-            [KeyboardButton(text='📞 Помощь')]
+            [KeyboardButton(text='🚀 Заказать/Buyurtma berish')],
+            [KeyboardButton(text='📞 Помощь / Yordam'), KeyboardButton(text='💸 Тарифы / Narxlar')],
+            [KeyboardButton(text='ℹ️ Кто мы / Biz kim')]
         ],
         resize_keyboard=True
     )
-    await message.answer("👋 Привет! Salom!\n\n🇷🇺 Русский\n🇺🇿 Oʻzbekcha", reply_markup=kb)
+    await message.answer("👋 Привет! Salom!\n\nВыберите действие: Amalni tanlang:", reply_markup=kb)
+    await state.clear()
+
+@router.message(F.text == '🚀 Заказать/Buyurtma berish')
+async def start_order(message: Message, state: FSMContext):
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text='🇷🇺 Русский'), KeyboardButton(text='🇺🇿 Oʻzbekcha')]],
+        resize_keyboard=True
+    )
+    await message.answer("🌐 Выберите язык / Tilni tanlang:", reply_markup=kb)
     await state.set_state(OrderForm.ChoosingLanguage)
 
-
-@router.message(F.text == '📞 Помощь')
-async def help_message(message: Message):
-    lang = LANGUAGE.get(message.from_user.id, 'ru')
-    await message.answer(TEXTS[lang]['help_text'])
-
-
-@router.message(F.text == '/cancel')
-async def cancel_order(message: Message, state: FSMContext):
-    lang = LANGUAGE.get(message.from_user.id, 'ru')
-    await state.clear()
-    await message.answer(TEXTS[lang]['order_cancelled'], reply_markup=ReplyKeyboardRemove())
-    await cmd_start(message, state)
-
-
-@router.message(F.text == '/stats')
-async def stats(message: Message):
-    lang = LANGUAGE.get(message.from_user.id, 'ru')
-    try:
-        with open("orders.json", 'r') as f:
-            orders = json.load(f)
-        total_sum = sum([o['price'] for o in orders])
-        await message.answer(TEXTS[lang]['stats'].format(count=len(orders), total=total_sum))
-    except Exception:
-        await message.answer(TEXTS[lang]['no_orders'])
-
-
-@router.message(OrderForm.ChoosingLanguage, F.text.in_(['🇷🇺 Русский', '🇺🇿 Oʻzbekcha']))
+@router.message(F.text.in_(['🇷🇺 Русский', '🇺🇿 Oʻzbekcha']))
 async def language_selected(message: Message, state: FSMContext):
     lang = 'ru' if 'Русский' in message.text else 'uz'
     LANGUAGE[message.from_user.id] = lang
-    await message.answer(TEXTS[lang]['ask_where_from'], reply_markup=ReplyKeyboardRemove())
+    clean_kb = ReplyKeyboardMarkup(keyboard=[], resize_keyboard=True)
+    await message.answer(TEXTS[lang]['ask_where_from'], reply_markup=clean_kb)
     await state.set_state(OrderForm.WaitingForSource)
-
 
 @router.message(OrderForm.WaitingForSource)
 async def source_received(message: Message, state: FSMContext):
@@ -121,7 +100,6 @@ async def source_received(message: Message, state: FSMContext):
     lang = LANGUAGE.get(message.from_user.id, 'ru')
     await message.answer(TEXTS[lang]['ask_what'])
     await state.set_state(OrderForm.WaitingForWhat)
-
 
 @router.message(OrderForm.WaitingForWhat)
 async def what_received(message: Message, state: FSMContext):
@@ -134,36 +112,16 @@ async def what_received(message: Message, state: FSMContext):
     await message.answer(TEXTS[lang]['ask_dropoff'], reply_markup=kb)
     await state.set_state(OrderForm.WaitingForDropoff)
 
-
 @router.message(OrderForm.WaitingForDropoff)
 async def handle_dropoff(message: Message, state: FSMContext):
     lang = LANGUAGE.get(message.from_user.id, 'ru')
-
     if not message.location:
         await message.answer(TEXTS[lang]['ask_dropoff'])
         return
-
     dropoff = (message.location.latitude, message.location.longitude)
     await state.update_data(dropoff=dropoff)
-    await message.answer(TEXTS[lang]['ask_price'], reply_markup=ReplyKeyboardRemove())
-    await state.set_state(OrderForm.WaitingForPrice)
-
-
-@router.message(OrderForm.WaitingForPrice)
-async def price_received(message: Message, state: FSMContext):
-    lang = LANGUAGE.get(message.from_user.id, 'ru')
-    try:
-        price = int(message.text.replace("'", '').replace("so'm", '').replace("so‘m", '').strip())
-    except ValueError:
-        await message.answer(TEXTS[lang]['price_too_low'])
-        return
-    if price < 5000:
-        await message.answer(TEXTS[lang]['price_too_low'])
-        return
-    await state.update_data(price=price)
     await message.answer(TEXTS[lang]['ask_name'])
     await state.set_state(OrderForm.WaitingForName)
-
 
 @router.message(OrderForm.WaitingForName)
 async def name_received(message: Message, state: FSMContext):
@@ -176,7 +134,6 @@ async def name_received(message: Message, state: FSMContext):
     await message.answer(TEXTS[lang]['ask_phone'], reply_markup=kb)
     await state.set_state(OrderForm.WaitingForPhone)
 
-
 @router.message(OrderForm.WaitingForPhone, F.contact)
 async def contact_received(message: Message, state: FSMContext):
     data = await state.get_data()
@@ -187,17 +144,16 @@ async def contact_received(message: Message, state: FSMContext):
         "source": data['source'],
         "what": data['what'],
         "dropoff": data['dropoff'],
-        "price": data['price'],
         "name": data['name'],
         "phone": phone,
         "time": order_time
     })
-
     lang = LANGUAGE.get(message.from_user.id, 'ru')
     kb = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=TEXTS[lang]['restart'])],
-            [KeyboardButton(text='📞 Помощь')]
+            [KeyboardButton(text='🚀 Заказать')],
+            [KeyboardButton(text='📞 Помощь / Yordam'), KeyboardButton(text='💸 Тарифы / Narxlar')],
+            [KeyboardButton(text='ℹ️ Кто мы / Biz kim')]
         ],
         resize_keyboard=True
     )
@@ -210,7 +166,6 @@ async def contact_received(message: Message, state: FSMContext):
         f"🛒 <b>Откуда:</b> {data['source']}\n"
         f"📦 <b>Что принести:</b> {data['what']}\n"
         f"📍 <b>Куда:</b> <a href='https://maps.google.com/?q={lat},{lon}'>Локация</a>\n"
-        f"💰 <b>Цена:</b> {data['price']} сум\n"
         f"🙋‍♂️ <b>Имя:</b> {data['name']}\n"
         f"📱 <b>Телефон:</b> {phone}\n"
         f"🕒 <b>Время:</b> {order_time}\n"
@@ -221,11 +176,20 @@ async def contact_received(message: Message, state: FSMContext):
     except Exception as e:
         print(f"Ошибка отправки курьеру: {e}")
 
+@router.message(F.text.in_(['📞 Помощь / Yordam']))
+async def help_message(message: Message):
+    lang = LANGUAGE.get(message.from_user.id, 'ru')
+    await message.answer(TEXTS[lang]['help_text'])
 
-@router.message(F.text.in_([TEXTS['ru']['restart'], TEXTS['uz']['restart']]))
-async def restart_order(message: Message, state: FSMContext):
-    await cmd_start(message, state)
+@router.message(F.text.in_(['💸 Тарифы / Narxlar']))
+async def show_tariffs(message: Message):
+    lang = LANGUAGE.get(message.from_user.id, 'ru')
+    await message.answer(TEXTS[lang]['tariff_text'])
 
+@router.message(F.text.in_(['ℹ️ Кто мы / Biz kim']))
+async def about_us(message: Message):
+    lang = LANGUAGE.get(message.from_user.id, 'ru')
+    await message.answer(TEXTS[lang]['about_us'])
 
 def save_order(order_data):
     ORDER_FILE = "orders.json"
@@ -241,11 +205,9 @@ def save_order(order_data):
         json.dump(orders, f, indent=4, ensure_ascii=False)
     return order_id
 
-
 async def main():
     dp.include_router(router)
     await dp.start_polling(bot)
-
 
 if __name__ == '__main__':
     asyncio.run(main())
