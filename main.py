@@ -9,9 +9,13 @@ import asyncio
 import json
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 TOKEN = '8451105651:AAHw21f-xCOAeh6V8nXu8n9DHDRt5wkCJBE'
 COURIER_ID = 5345096255
+
+# Таймзона — всегда Ташкент
+TIMEZONE = ZoneInfo("Asia/Tashkent")
 
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
 dp = Dispatcher(storage=MemoryStorage())
@@ -64,6 +68,56 @@ class OrderForm(StatesGroup):
     WaitingForName = State()
     WaitingForPhone = State()
 
+USERS_FILE = "users.json"
+ORDERS_FILE = "orders.json"
+
+# ----------------- Утилиты для безопасной работы с JSON -----------------
+def safe_load_json(path):
+    """Безопасно загрузить JSON: если файла нет или он битый — вернуть пустой список."""
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, ValueError):
+        # файл битый — возвращаем пустой список (можно бэкапить файл тут при желании)
+        return []
+
+def safe_save_json(path, data):
+    """Сохранить JSON (перезаписывает файл)."""
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+# ----------------- Функции пользователей и заказов -----------------
+def save_user_if_new(user):
+    users = safe_load_json(USERS_FILE)
+    if any(u.get('user_id') == user.id for u in users):
+        return
+    users.append({
+        "user_id": user.id,
+        "username": user.username or "",
+        "full_name": user.full_name or "",
+        # время сохраняем как строку в ташкентской таймзоне
+        "joined_at": datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+    })
+    safe_save_json(USERS_FILE, users)
+
+def save_order(order_data):
+    orders = safe_load_json(ORDERS_FILE)
+    order_id = len(orders) + 1
+    # гарантируем, что поле time — строка в нужном формате
+    if isinstance(order_data.get("time"), datetime):
+        order_data["time"] = order_data["time"].astimezone(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        # если передали строку — оставляем, если не передали — ставим текущее время
+        order_data["time"] = order_data.get("time") or datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+
+    order_data['id'] = order_id
+    orders.append(order_data)
+    safe_save_json(ORDERS_FILE, orders)
+    return order_id
+
+# ----------------- Хендлеры -----------------
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     kb = ReplyKeyboardMarkup(
@@ -74,10 +128,13 @@ async def cmd_start(message: Message, state: FSMContext):
         ],
         resize_keyboard=True
     )
+    # сохраняем юзера при /start
+    save_user_if_new(message.from_user)
+
     await message.answer("👋 Привет! Salom!\n\nВыберите действие: Amalni tanlang:", reply_markup=kb)
     await state.clear()
 
-# 🛠 Исправлено: поддержка всех возможных вариантов текста кнопки "Заказать"
+# 🛠 Поддержка всех вариантов кнопки "Заказать"
 @router.message(F.text.in_(['🚀 Заказать/Buyurtma berish', 'Заказать', 'Buyurtma berish']))
 async def start_order(message: Message, state: FSMContext):
     kb = ReplyKeyboardMarkup(
@@ -139,13 +196,15 @@ async def name_received(message: Message, state: FSMContext):
 async def contact_received(message: Message, state: FSMContext):
     data = await state.get_data()
     phone = message.contact.phone_number
-    order_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # время — строка по Ташкенту
+    order_time = datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+
     order_id = save_order({
         "user_id": message.from_user.id,
-        "source": data['source'],
-        "what": data['what'],
-        "dropoff": data['dropoff'],
-        "name": data['name'],
+        "source": data.get('source', ''),
+        "what": data.get('what', ''),
+        "dropoff": data.get('dropoff', ''),
+        "name": data.get('name', ''),
         "phone": phone,
         "time": order_time
     })
@@ -161,13 +220,13 @@ async def contact_received(message: Message, state: FSMContext):
     await message.answer(TEXTS[lang]['confirm'].format(id=order_id, time=order_time), reply_markup=kb)
     await state.clear()
 
-    lat, lon = data['dropoff']
+    lat, lon = data.get('dropoff', ('', ''))
     courier_text = (
         f"🚚 <b>Новый заказ!</b>\n\n"
-        f"🛒 <b>Откуда:</b> {data['source']}\n"
-        f"📦 <b>Что принести:</b> {data['what']}\n"
+        f"🛒 <b>Откуда:</b> {data.get('source','')}\n"
+        f"📦 <b>Что принести:</b> {data.get('what','')}\n"
         f"📍 <b>Куда:</b> <a href='https://maps.google.com/?q={lat},{lon}'>Локация</a>\n"
-        f"🙋‍♂️ <b>Имя:</b> {data['name']}\n"
+        f"🙋‍♂️ <b>Имя:</b> {data.get('name','')}\n"
         f"📱 <b>Телефон:</b> {phone}\n"
         f"🕒 <b>Время:</b> {order_time}\n"
         f"🔢 <b>Номер заказа:</b> #{order_id}"
@@ -192,20 +251,24 @@ async def about_us(message: Message):
     lang = LANGUAGE.get(message.from_user.id, 'ru')
     await message.answer(TEXTS[lang]['about_us'])
 
-def save_order(order_data):
-    ORDER_FILE = "orders.json"
-    if not os.path.exists(ORDER_FILE):
-        with open(ORDER_FILE, 'w') as f:
-            json.dump([], f)
-    with open(ORDER_FILE, 'r') as f:
-        orders = json.load(f)
-    order_id = len(orders) + 1
-    order_data['id'] = order_id
-    orders.append(order_data)
-    with open(ORDER_FILE, 'w') as f:
-        json.dump(orders, f, indent=4, ensure_ascii=False)
-    return order_id
+# ----------------- Доп. команды для статистики -----------------
+@router.message(lambda msg: msg.text and msg.text.startswith("/users"))
+async def cmd_users(message: Message):
+    users = safe_load_json(USERS_FILE)
+    await message.answer(f"👥 Всего пользователей: {len(users)}")
 
+@router.message(lambda msg: msg.text and msg.text.startswith("/orders"))
+async def cmd_orders(message: Message):
+    orders = safe_load_json(ORDERS_FILE)
+    if not orders:
+        await message.answer("Заказов пока нет.")
+        return
+    text = "📦 Список заказов:\n\n"
+    for o in orders:
+        text += f"{o.get('name','')} (@{o.get('username','')}) — {o.get('order','/')} — {o.get('time','')}\n"
+    await message.answer(text)
+
+# ----------------- Запуск -----------------
 async def main():
     dp.include_router(router)
     await dp.start_polling(bot)
