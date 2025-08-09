@@ -1,15 +1,17 @@
-from aiogram import Bot, Dispatcher, F, Router
-from aiogram.filters import CommandStart
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.client.default import DefaultBotProperties
 import asyncio
 import json
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
+from aiogram import Bot, Dispatcher, F, Router
+from aiogram.client.default import DefaultBotProperties
+from aiogram.filters import CommandStart
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from google_sheets import append_order
 
 TOKEN = '8451105651:AAHw21f-xCOAeh6V8nXu8n9DHDRt5wkCJBE'
 COURIER_ID = 5345096255
@@ -30,7 +32,7 @@ TEXTS = {
         'ask_what': '📦 Что нужно привезти?',
         'ask_dropoff': '📍 Пожалуйста, отправьте локацию, куда доставить.',
         'ask_name': '🙋‍♂️ Как вас зовут?',
-        'ask_phone': '📱 Пожалуйста, отправьте номер телефона кнопкой ниже:',
+        'ask_phone': '📱 Пожалуйста, отправьте номер телефона кнопкой ниже или напишите его:',
         'confirm': '✅ Спасибо! Ваш заказ принят!\nНомер заказа: <b>#{id}</b>\nВремя: <b>{time}</b>\nСкоро свяжемся!',
         'main_menu': '🏠 Главное меню',
         'restart': '🔁 Начать заново',
@@ -47,7 +49,7 @@ TEXTS = {
         'ask_what': '📦 Nima olib kelish kerak?',
         'ask_dropoff': '📍 Iltimos, qayerga yetkazish kerakligini lokatsiya orqali yuboring.',
         'ask_name': '🙋‍♂️ Ismingiz nima?',
-        'ask_phone': '📱 Telefon raqamingizni quyidagi tugma orqali yuboring:',
+        'ask_phone': '📱 Telefon raqamingizni quyidagi tugma orqali yuboring yoki yozing:',
         'confirm': '✅ Rahmat! Buyurtmangiz qabul qilindi!\nBuyurtma raqami: <b>#{id}</b>\nVaqti: <b>{time}</b>\nTez orada bog‘lanamiz!',
         'main_menu': '🏠 Asosiy menyu',
         'restart': '🔁 Qayta boshlash',
@@ -73,18 +75,15 @@ ORDERS_FILE = "orders.json"
 
 # ----------------- Утилиты для безопасной работы с JSON -----------------
 def safe_load_json(path):
-    """Безопасно загрузить JSON: если файла нет или он битый — вернуть пустой список."""
     if not os.path.exists(path):
         return []
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, ValueError):
-        # файл битый — возвращаем пустой список (можно бэкапить файл тут при желании)
         return []
 
 def safe_save_json(path, data):
-    """Сохранить JSON (перезаписывает файл)."""
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
@@ -97,7 +96,6 @@ def save_user_if_new(user):
         "user_id": user.id,
         "username": user.username or "",
         "full_name": user.full_name or "",
-        # время сохраняем как строку в ташкентской таймзоне
         "joined_at": datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
     })
     safe_save_json(USERS_FILE, users)
@@ -105,13 +103,10 @@ def save_user_if_new(user):
 def save_order(order_data):
     orders = safe_load_json(ORDERS_FILE)
     order_id = len(orders) + 1
-    # гарантируем, что поле time — строка в нужном формате
     if isinstance(order_data.get("time"), datetime):
         order_data["time"] = order_data["time"].astimezone(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
     else:
-        # если передали строку — оставляем, если не передали — ставим текущее время
         order_data["time"] = order_data.get("time") or datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
-
     order_data['id'] = order_id
     orders.append(order_data)
     safe_save_json(ORDERS_FILE, orders)
@@ -128,13 +123,10 @@ async def cmd_start(message: Message, state: FSMContext):
         ],
         resize_keyboard=True
     )
-    # сохраняем юзера при /start
     save_user_if_new(message.from_user)
-
     await message.answer("👋 Привет! Salom!\n\nВыберите действие: Amalni tanlang:", reply_markup=kb)
     await state.clear()
 
-# 🛠 Поддержка всех вариантов кнопки "Заказать"
 @router.message(F.text.in_(['🚀 Заказать/Buyurtma berish', 'Заказать', 'Buyurtma berish']))
 async def start_order(message: Message, state: FSMContext):
     kb = ReplyKeyboardMarkup(
@@ -192,11 +184,25 @@ async def name_received(message: Message, state: FSMContext):
     await message.answer(TEXTS[lang]['ask_phone'], reply_markup=kb)
     await state.set_state(OrderForm.WaitingForPhone)
 
+# Обработчик на контакт (если пользователь нажал кнопку отправки номера)
 @router.message(OrderForm.WaitingForPhone, F.contact)
 async def contact_received(message: Message, state: FSMContext):
-    data = await state.get_data()
     phone = message.contact.phone_number
-    # время — строка по Ташкенту
+    await process_order(phone, message, state)
+
+# Обработчик на простой текст (если пользователь просто пишет номер)
+@router.message(OrderForm.WaitingForPhone)
+async def phone_received(message: Message, state: FSMContext):
+    phone = message.text.strip()
+    # Простая проверка длины номера, можно улучшить
+    if len(phone) < 5:
+        lang = LANGUAGE.get(message.from_user.id, 'ru')
+        await message.answer(TEXTS[lang]['ask_phone'])
+        return
+    await process_order(phone, message, state)
+
+async def process_order(phone, message, state):
+    data = await state.get_data()
     order_time = datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
 
     order_id = save_order({
@@ -208,6 +214,16 @@ async def contact_received(message: Message, state: FSMContext):
         "phone": phone,
         "time": order_time
     })
+
+    append_order({
+        "time": order_time,
+        "user_id": message.from_user.id,
+        "username": message.from_user.username or '',
+        "first_name": message.from_user.full_name or '',
+        "phone": phone,
+        "items": f"{data.get('source', '')} | {data.get('what', '')}"
+    }   )
+
     lang = LANGUAGE.get(message.from_user.id, 'ru')
     kb = ReplyKeyboardMarkup(
         keyboard=[
