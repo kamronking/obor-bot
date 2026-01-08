@@ -11,62 +11,54 @@
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: #0f172a; color: var(--text);
             margin: 0; padding: 15px; min-height: 100vh; overflow: hidden;
-            transition: background 0.3s;
+            transition: background 0.5s ease;
         }
-        /* Состояние когда свеча задута (черный фон как в анимации) */
-        body.dark-mode { background: #000; }
+        body.dark-mode { background: #000 !important; }
 
         .card {
             background: var(--card); backdrop-filter: blur(12px);
             border: 1px solid rgba(255,255,255,0.1);
             padding: 20px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-            position: relative; z-index: 10;
+            position: relative;
         }
 
-        .step { display: none; animation: slide 0.3s ease-out forwards; }
-        .step.active { display: block; }
+        .step { display: none; }
+        .step.active { display: block; animation: slide 0.3s ease-out forwards; }
         @keyframes slide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         h2 { font-size: 22px; color: var(--primary); margin: 0 0 20px 0; text-align: center; }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-
-        button {
-            width: 100%; padding: 16px; border-radius: 14px; border: none;
-            background: var(--primary); color: #000; font-size: 16px; font-weight: 700;
-            cursor: pointer; transition: 0.2s;
-        }
+        input { width: 100%; padding: 14px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; font-size: 16px; outline: none; box-sizing: border-box; margin-bottom: 15px; }
+        button { width: 100%; padding: 16px; border-radius: 14px; border: none; background: var(--primary); color: #000; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; }
         button.sec { background: #334155; color: white; }
-        button.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
-
-        input {
-            width: 100%; padding: 14px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.3); color: white; font-size: 16px; outline: none; box-sizing: border-box; margin-bottom: 15px;
-        }
-        label { display: block; margin-bottom: 6px; font-size: 13px; color: #94a3b8; }
+        button.disabled { opacity: 0.3; pointer-events: none; }
         .summary { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.6; margin-bottom: 15px; border: 1px dashed var(--primary); }
 
-        /* --- СТИЛИ АНИМАЦИИ СВЕЧЕЙ --- */
-        #success-screen { display: none; height: 250px; position: relative; }
-        .wrapper { position: absolute; left: 50%; top: 60%; transform: scale(0.8) translate(-50%, -50%); }
-        .floor { position: absolute; left: 50%; top: 50%; width: 250px; height: 5px; background: #673C63; transform: translate(-50%, -50%); box-shadow: 0px 2px 5px #111; z-index: 2; }
-        .candles { position: absolute; left: 50%; top: 50%; width: 250px; height: 150px; transform: translate(-50%, -100%); z-index: 1; }
-        .candle1 { position: absolute; left: 50%; top: 50%; width: 35px; height: 100px; background: #fff; border: 3px solid #673C63; border-bottom: 0px; border-radius: 3px; transform: translate(60%, -25%); animation: expand-body 3s infinite linear; }
-        .candle1__stick { position: absolute; left: 50%; top: 0%; width: 3px; height: 15px; background: #673C63; border-radius: 8px; transform: translate(-50%, -100%); }
-        .candle1__eyes { position: absolute; left: 50%; top: 0%; width: 35px; height: 30px; transform: translate(-50%, 0%); }
-        .candle1__eyes-one, .candle1__eyes-two { position: absolute; width: 5px; height: 5px; border-radius: 100%; background: #673C63; top: 20%; animation: blink-eyes 3s infinite linear; }
-        .candle1__eyes-one { left: 30%; } .candle1__eyes-two { left: 70%; }
-        .candle1__mouth { position: absolute; left: 40%; top: 20%; width: 0px; height: 0px; border-radius: 20px; background: #673C63; animation: uff 3s infinite linear; }
-        .candle2 { position: absolute; left: 20%; top: 65%; width: 42px; height: 60px; background: #fff; border: 3px solid #673C63; border-bottom: 0px; border-radius: 3px; transform: translate(60%, -15%); animation: shake-left 3s infinite linear; }
-        .candle2__fire { position: absolute; top: 50%; left: 40%; width: 16px; height: 20px; background: #FF9800; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; transform: translate(-50%, -50%); animation: dance-fire 3s infinite linear; }
+        /* --- АНИМАЦИЯ СВЕЧЕЙ (ИСПРАВЛЕННАЯ ДЛЯ МОБИЛЬНЫХ) --- */
+        #success-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 9999; background: inherit;
+        }
+        .wrapper { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(1.2); }
+        .floor { width: 250px; height: 5px; background: #673C63; box-shadow: 0px 2px 5px #111; }
+        .candles { position: relative; width: 250px; height: 150px; }
 
-        /* Ключевые кадры анимаций (сокращено для краткости) */
-        @keyframes blink-eyes { 0%,35% {opacity:1} 36%,39% {opacity:0} 40% {opacity:1} 50%,65% {transform:translate(-200%,0)} }
-        @keyframes expand-body { 0%,40% {transform:scale(1,1) translate(60%,-25%)} 45%,55% {transform:scale(1.1,1.1) translate(60%,-28%)} 60% {transform:scale(0.89,0.89) translate(60%,-25%)} }
-        @keyframes uff { 0%,40% {width:0; height:0} 50%,54% {width:15px; height:15px; left:30%} 67% {width:0; height:0} }
-        @keyframes dance-fire { 59%,89% {width:0; height:0} 90%,0%,55% {width:16px; height:20px; background:#FFC107} }
-        @keyframes shake-left { 0%,59% {left:20%; transform:translate(60%,-15%)} 62% {left:18%} 65% {left:21%} 75% {transform:scale(1.15,0.85) translate(60%,-15%)} 91% {background:#F44336; border-color:#F44336} }
+        .candle1 { position: absolute; left: 140px; top: 50px; width: 35px; height: 100px; background: #fff; border: 3px solid #673C63; border-bottom: 0; animation: expand-body 3s infinite linear; }
+        .candle1__eyes { position: absolute; top: 20px; width: 100%; display: flex; justify-content: space-around; }
+        .candle1__eyes span { width: 5px; height: 5px; background: #673C63; border-radius: 50%; animation: blink-eyes 3s infinite linear; }
+        .candle1__mouth { position: absolute; top: 25px; left: 15px; width: 0px; height: 0px; background: #673C63; border-radius: 50%; animation: uff 3s infinite linear; }
 
-        .success-text { text-align: center; color: var(--primary); font-weight: bold; margin-top: 20px; }
+        .candle2 { position: absolute; left: 50px; top: 90px; width: 42px; height: 60px; background: #fff; border: 3px solid #673C63; border-bottom: 0; animation: shake-left 3s infinite linear; }
+        .candle2__fire { position: absolute; top: 70px; left: 70px; width: 16px; height: 20px; background: #FF9800; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; animation: dance-fire 3s infinite linear; z-index: 10; }
+
+        @keyframes blink-eyes { 0%,35%,40%,100% {opacity:1} 36%,39% {opacity:0} 50%,65% {transform:translateX(-5px)} }
+        @keyframes expand-body { 0%,40%,100% {transform:scale(1,1)} 45%,55% {transform:scale(1.1,1.1) translateY(-5px)} 60% {transform:scale(0.9,0.9)} }
+        @keyframes uff { 0%,40%,100% {width:0; height:0} 50%,54% {width:15px; height:15px} }
+        @keyframes dance-fire { 0%,55%,100% {display:block; background:#FFC107} 59%,89% {display:none; opacity:0} }
+        @keyframes shake-left { 0%,59%,100% {transform:translateX(0)} 62% {transform:translateX(-3px)} 65% {transform:translateX(3px)} 75% {transform:scale(1.1,0.9)} 91% {background:#F44336} }
+
+        .success-msg { color: #fff; text-align: center; margin-top: 30px; font-weight: bold; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -81,50 +73,40 @@
 
         <div id="step2" class="step">
             <h2 id="h2_2">Заказ</h2>
-            <label id="lbl_what">Что везем?</label>
-            <input type="text" id="what" oninput="check2()">
-            <label id="lbl_from">Откуда?</label>
-            <input type="text" id="from" oninput="check2()">
-            <label id="lbl_weight">Вес</label>
-            <input type="text" id="weight" oninput="check2()">
+            <input type="text" id="what" placeholder="Что везем?" oninput="check2()">
+            <input type="text" id="from" placeholder="Откуда?" oninput="check2()">
+            <input type="text" id="weight" placeholder="Вес" oninput="check2()">
             <button id="btn2" class="disabled" onclick="next(3)">Далее</button>
         </div>
 
         <div id="step3" class="step">
             <h2 id="h2_3">Доставка</h2>
-            <label id="lbl_name">Имя</label>
-            <input type="text" id="name" oninput="check3()">
-            <label id="lbl_phone">Телефон</label>
+            <input type="text" id="name" placeholder="Имя" oninput="check3()">
             <input type="tel" id="phone" value="+998 ">
             <button id="btn_loc" class="sec" onclick="getLoc()">📍 Локация</button>
-            <button id="btn3" class="disabled" onclick="prepareFinal()" style="margin-top:10px">Проверить</button>
+            <button id="btn3" class="disabled" onclick="prepareFinal()">Проверить</button>
         </div>
 
         <div id="step4" class="step">
             <h2 id="h2_4">Итог</h2>
             <div id="summary" class="summary"></div>
-            <button id="final-btn" onclick="sendOrder()">🚀 Оформить заказ</button>
-            <button class="sec" style="margin-top:10px" onclick="next(3)">Назад</button>
+            <button id="final-btn" onclick="startSuccessAnim()">🚀 Оформить заказ</button>
+            <button class="sec" onclick="next(3)">Назад</button>
         </div>
+    </div>
 
-        <div id="success-screen">
-            <div class="wrapper">
-                <div class="candles">
-                    <div class="candle1">
-                        <div class="candle1__body">
-                            <div class="candle1__eyes"><span class="candle1__eyes-one"></span><span class="candle1__eyes-two"></span></div>
-                            <div class="candle1__mouth"></div>
-                        </div>
-                        <div class="candle1__stick"></div>
-                    </div>
-                    <div class="candle2">
-                        <div class="candle2__body"></div>
-                    </div>
-                    <div class="candle2__fire"></div>
+    <div id="success-screen">
+        <div class="wrapper">
+            <div class="candle2__fire"></div>
+            <div class="candles">
+                <div class="candle1">
+                    <div class="candle1__eyes"><span></span><span></span></div>
+                    <div class="candle1__mouth"></div>
                 </div>
-                <div class="floor"></div>
+                <div class="candle2"></div>
             </div>
-            <div style="position:absolute; bottom:0; width:100%;" class="success-text" id="final_msg">Заказ принят!</div>
+            <div class="floor"></div>
+            <div class="success-msg" id="final_msg">Заказ принят!</div>
         </div>
     </div>
 
@@ -133,37 +115,9 @@
         let order = { lat: 0, lon: 0 };
         tg.expand();
 
-        // Маска телефона (стандартная)
-        const phoneInput = document.getElementById('phone');
-        phoneInput.addEventListener('input', (e) => {
-            let val = e.target.value.replace(/\D/g, '');
-            if (!val.startsWith('998')) val = '998' + val;
-            let formatted = '+998';
-            if (val.length > 3) formatted += ' ' + val.substring(3, 5);
-            if (val.length > 5) formatted += ' ' + val.substring(5, 8);
-            if (val.length > 8) formatted += ' ' + val.substring(8, 10);
-            if (val.length > 10) formatted += ' ' + val.substring(10, 12);
-            e.target.value = formatted;
-            check3();
-        });
-
-        const langData = {
-            ru: { h2: "Заказ", what: "Что везем?", from: "Откуда?", weight: "Вес", h3: "Доставка", name: "Имя", check: "Проверить", final: "🚀 Оформить", sign: "Заказ принят! Ждите звонка." },
-            uz: { h2: "Buyurtma", what: "Nima?", from: "Qayerdan?", weight: "Vazni", h3: "Yetkazib berish", name: "Ism", check: "Tekshirish", final: "🚀 Buyurtma berish", sign: "Buyurtma qabul qilindi!" }
-        };
-
         function setLang(l) {
             order.lang = l;
-            const t = langData[l];
-            document.getElementById('h2_2').innerText = t.h2;
-            document.getElementById('lbl_what').innerText = t.what;
-            document.getElementById('lbl_from').innerText = t.from;
-            document.getElementById('lbl_weight').innerText = t.weight;
-            document.getElementById('h2_3').innerText = t.h3;
-            document.getElementById('lbl_name').innerText = t.name;
-            document.getElementById('btn3').innerText = t.check;
-            document.getElementById('final-btn').innerText = t.final;
-            document.getElementById('final_msg').innerText = t.sign;
+            document.getElementById('final_msg').innerText = l === 'ru' ? "Заказ принят! Закрываем..." : "Buyurtma qabul qilindi!";
             next(2);
         }
 
@@ -178,7 +132,7 @@
         }
 
         function check3() {
-            const ok = document.getElementById('name').value && phoneInput.value.length >= 17 && order.lat !== 0;
+            const ok = document.getElementById('name').value && document.getElementById('phone').value.length >= 17 && order.lat !== 0;
             document.getElementById('btn3').classList.toggle('disabled', !ok);
         }
 
@@ -186,35 +140,41 @@
             navigator.geolocation.getCurrentPosition(pos => {
                 order.lat = pos.coords.latitude; order.lon = pos.coords.longitude;
                 document.getElementById('btn_loc').innerText = "✅ OK"; check3();
-            }, () => alert("Включите GPS"));
+            }, () => alert("GPS?"));
         }
 
         function prepareFinal() {
             order.what = document.getElementById('what').value;
             order.from = document.getElementById('from').value;
-            order.weight = document.getElementById('weight').value;
             order.name = document.getElementById('name').value;
-            order.phone = phoneInput.value;
+            order.phone = document.getElementById('phone').value;
             document.getElementById('summary').innerHTML = `📦 ${order.what}<br>🛒 ${order.from}<br>👤 ${order.name}<br>📞 ${order.phone}`;
             next(4);
         }
 
-        function sendOrder() {
-            // 1. Отправляем данные боту сразу
-            tg.sendData(JSON.stringify(order));
-
-            // 2. Скрываем интерфейс и показываем свечи
-            document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
+        function startSuccessAnim() {
+            // 1. Показываем экран анимации
+            document.getElementById('main-card').style.display = 'none';
             document.getElementById('success-screen').style.display = 'block';
 
-            // Логика переключения фона (синхронно с анимацией)
-            setTimeout(() => { document.body.classList.add('dark-mode'); }, 1800);
-
-            // 3. Закрываем приложение ровно после одного цикла анимации (3000мс)
+            // 2. Эффект затухания света (синхронно с CSS свечи)
             setTimeout(() => {
-                tg.close();
-            }, 4500); // Даем посмотреть анимацию один раз полностью + чуть-чуть запаса
+                document.body.classList.add('dark-mode');
+            }, 1800);
+
+            // 3. Ждем 5 секунд, затем отправляем данные и закрываем
+            setTimeout(() => {
+                tg.sendData(JSON.stringify(order));
+                // На случай если sendData не закроет сам:
+                setTimeout(() => tg.close(), 500);
+            }, 5000);
         }
+
+        // Простая маска
+        document.getElementById('phone').addEventListener('input', (e) => {
+            if (!e.target.value.startsWith('+998 ')) e.target.value = '+998 ';
+            check3();
+        });
     </script>
 </body>
 </html>
