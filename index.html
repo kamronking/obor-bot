@@ -2,76 +2,80 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Form</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Obor App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            padding: 20px;
-            margin: 0;
-        }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-sizing: border-box;
-            background: var(--tg-theme-secondary-bg-color, #efefef);
-            color: var(--tg-theme-text-color);
-        }
-        button {
-            width: 100%;
-            padding: 15px;
-            background-color: var(--tg-theme-button-color, #248b1d);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 20px;
-        }
+        :root { --p: #248b1d; --bg: var(--tg-theme-bg-color); --txt: var(--tg-theme-text-color); }
+        body { font-family: sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; }
+        .step { display: none; transition: 0.3s; }
+        .active { display: block; }
+        button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: none; background: var(--p); color: white; font-weight: bold; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; background: var(--tg-theme-secondary-bg-color); color: var(--txt); }
+        .loc-status { font-size: 12px; color: var(--p); margin-bottom: 10px; }
     </style>
 </head>
 <body>
-    <div class="form-group">
-        <label>🙋‍♂️ Ваше имя</label>
-        <input type="text" id="name" placeholder="Введите имя...">
+    <div id="step1" class="step active">
+        <h2>🌐 Выберите язык / Tilni tanlang</h2>
+        <button onclick="setLang('ru')">🇷🇺 Русский</button>
+        <button onclick="setLang('uz')">🇺🇿 O'zbekcha</button>
     </div>
-    <div class="form-group">
-        <label>📱 Номер телефона</label>
-        <input type="tel" id="phone" placeholder="+998...">
+
+    <div id="step2" class="step">
+        <h2 id="h2_2">Что везем?</h2>
+        <input type="text" id="what" placeholder="Что привезти?">
+        <input type="text" id="from" placeholder="Откуда забрать?">
+        <input type="text" id="weight" placeholder="Примерный вес">
+        <button onclick="next(3)">Далее / Keyingi</button>
     </div>
-    <button id="main_btn">Подтвердить данные</button>
+
+    <div id="step3" class="step">
+        <h2 id="h2_3">Ваши контакты</h2>
+        <input type="text" id="name" placeholder="Ваше имя">
+        <input type="tel" id="phone" value="+998">
+        <p class="loc-status" id="l_stat"></p>
+        <button onclick="getLoc()" style="background: #555;">📍 Отправить локацию</button>
+        <button onclick="sendOrder()">✅ Оформить заказ</button>
+    </div>
 
     <script>
         let tg = window.Telegram.WebApp;
-        tg.expand(); // Разворачиваем на все окно
+        let order = { lat: 0, lon: 0 };
+        tg.expand();
 
-        let btn = document.getElementById("main_btn");
-
-        btn.addEventListener("click", () => {
-            let name = document.getElementById("name").value;
-            let phone = document.getElementById("phone").value;
-
-            if (name.length < 2) {
-                alert("Введите корректное имя");
-                return;
+        function setLang(l) {
+            order.lang = l;
+            if(l === 'uz') {
+                document.getElementById('h2_2').innerText = 'Nima olib kelish kerak?';
+                document.getElementById('h2_3').innerText = 'Kontaktlar';
             }
+            next(2);
+        }
 
-            let data = {
-                name: name,
-                phone: phone
-            };
+        function next(s) {
+            document.querySelectorAll('.step').forEach(e => e.classList.remove('active'));
+            document.getElementById('step'+s).classList.add('active');
+        }
 
-            // Отправляем данные обратно в бот
-            tg.sendData(JSON.stringify(data));
-        });
+        function getLoc() {
+            navigator.geolocation.getCurrentPosition(pos => {
+                order.lat = pos.coords.latitude;
+                order.lon = pos.coords.longitude;
+                document.getElementById('l_stat').innerText = "✅ Локация получена / Lokatsiya olindi";
+            }, () => alert("Включите GPS!"));
+        }
+
+        function sendOrder() {
+            order.what = document.getElementById('what').value;
+            order.from = document.getElementById('from').value;
+            order.weight = document.getElementById('weight').value;
+            order.name = document.getElementById('name').value;
+            order.phone = document.getElementById('phone').value;
+
+            if(!order.name || !order.phone) return alert("Заполните всё!");
+            tg.sendData(JSON.stringify(order));
+        }
     </script>
 </body>
 </html>
