@@ -11,29 +11,25 @@
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: #0f172a; color: var(--text);
             margin: 0; padding: 15px; min-height: 100vh; overflow: hidden;
+            transition: background 0.3s;
         }
-        .step { display: none; animation: slide 0.3s ease-out forwards; }
-        .step.active { display: block; }
-
-        /* Анимация улетающего самолетика */
-        .fly-away { animation: flyOut 0.8s ease-in forwards !important; }
-        @keyframes flyOut {
-            0% { transform: scale(1) translateY(0); opacity: 1; }
-            30% { transform: scale(0.8) translateX(20px); opacity: 0.8; }
-            100% { transform: scale(0.2) translateY(-1000px) translateX(200px); opacity: 0; }
-        }
-
-        @keyframes slide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Состояние когда свеча задута (черный фон как в анимации) */
+        body.dark-mode { background: #000; }
 
         .card {
             background: var(--card); backdrop-filter: blur(12px);
             border: 1px solid rgba(255,255,255,0.1);
             padding: 20px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-            position: relative;
+            position: relative; z-index: 10;
         }
-        h2 { font-size: 22px; color: var(--primary); margin: 0 0 20px 0; text-align: center; }
 
+        .step { display: none; animation: slide 0.3s ease-out forwards; }
+        .step.active { display: block; }
+        @keyframes slide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { font-size: 22px; color: var(--primary); margin: 0 0 20px 0; text-align: center; }
         .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+
         button {
             width: 100%; padding: 16px; border-radius: 14px; border: none;
             background: var(--primary); color: #000; font-size: 16px; font-weight: 700;
@@ -42,55 +38,35 @@
         button.sec { background: #334155; color: white; }
         button.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
 
-        .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 6px; font-size: 13px; color: #94a3b8; }
         input {
             width: 100%; padding: 14px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.3); color: white; font-size: 16px; outline: none; box-sizing: border-box;
+            background: rgba(0,0,0,0.3); color: white; font-size: 16px; outline: none; box-sizing: border-box; margin-bottom: 15px;
         }
-
+        label { display: block; margin-bottom: 6px; font-size: 13px; color: #94a3b8; }
         .summary { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.6; margin-bottom: 15px; border: 1px dashed var(--primary); }
 
-        /* --- СТИЛИ КНОПКИ LOGIN С ОТПЕЧАТКОМ --- */
-        .container {
-            align-items: center; background: #000; border-radius: 40px;
-            box-shadow: 0 14px 28px rgba(0,0,0,0.25); display: flex;
-            height: 80px; justify-content: center; position: relative;
-            width: 200px; margin: 20px auto; cursor: pointer;
-        }
-        .text { color: white; position: absolute; transition: opacity 300ms; user-select: none; font-weight: bold; }
-        .fingerprint { left: 50%; transform: translateX(-50%); opacity: 0; position: absolute; stroke: #777; top: -10px; transition: opacity 1ms; }
-        .fingerprint-active { stroke: #fff; }
-        .odd { stroke-dasharray: 0px 50px; stroke-dashoffset: 1px; transition: stroke-dasharray 1ms; }
-        .even { stroke-dasharray: 50px 50px; stroke-dashoffset: -41px; transition: stroke-dashoffset 1ms; }
-        .ok { opacity: 0; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+        /* --- СТИЛИ АНИМАЦИИ СВЕЧЕЙ --- */
+        #success-screen { display: none; height: 250px; position: relative; }
+        .wrapper { position: absolute; left: 50%; top: 60%; transform: scale(0.8) translate(-50%, -50%); }
+        .floor { position: absolute; left: 50%; top: 50%; width: 250px; height: 5px; background: #673C63; transform: translate(-50%, -50%); box-shadow: 0px 2px 5px #111; z-index: 2; }
+        .candles { position: absolute; left: 50%; top: 50%; width: 250px; height: 150px; transform: translate(-50%, -100%); z-index: 1; }
+        .candle1 { position: absolute; left: 50%; top: 50%; width: 35px; height: 100px; background: #fff; border: 3px solid #673C63; border-bottom: 0px; border-radius: 3px; transform: translate(60%, -25%); animation: expand-body 3s infinite linear; }
+        .candle1__stick { position: absolute; left: 50%; top: 0%; width: 3px; height: 15px; background: #673C63; border-radius: 8px; transform: translate(-50%, -100%); }
+        .candle1__eyes { position: absolute; left: 50%; top: 0%; width: 35px; height: 30px; transform: translate(-50%, 0%); }
+        .candle1__eyes-one, .candle1__eyes-two { position: absolute; width: 5px; height: 5px; border-radius: 100%; background: #673C63; top: 20%; animation: blink-eyes 3s infinite linear; }
+        .candle1__eyes-one { left: 30%; } .candle1__eyes-two { left: 70%; }
+        .candle1__mouth { position: absolute; left: 40%; top: 20%; width: 0px; height: 0px; border-radius: 20px; background: #673C63; animation: uff 3s infinite linear; }
+        .candle2 { position: absolute; left: 20%; top: 65%; width: 42px; height: 60px; background: #fff; border: 3px solid #673C63; border-bottom: 0px; border-radius: 3px; transform: translate(60%, -15%); animation: shake-left 3s infinite linear; }
+        .candle2__fire { position: absolute; top: 50%; left: 40%; width: 16px; height: 20px; background: #FF9800; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; transform: translate(-50%, -50%); animation: dance-fire 3s infinite linear; }
 
-        .active.container { animation: 4s Container forwards; }
-        .active .text { opacity: 0; animation: 4s Text forwards; }
-        .active .fingerprint { opacity: 1; transition: opacity 300ms 200ms; }
-        .active .fingerprint-base .odd { stroke-dasharray: 50px 50px; transition: stroke-dasharray 800ms 100ms; }
-        .active .fingerprint-base .even { stroke-dashoffset: 0px; transition: stroke-dashoffset 800ms; }
-        .active .fingerprint-active .odd { stroke-dasharray: 50px 50px; transition: stroke-dasharray 1500ms 1200ms; }
-        .active .fingerprint-active .even { stroke-dashoffset: 0px; transition: stroke-dashoffset 1500ms 1000ms; }
-        .active .fingerprint-out { opacity: 0; transition: opacity 300ms 3100ms; }
-        .active .ok { opacity: 1; animation: 4s Ok forwards; }
+        /* Ключевые кадры анимаций (сокращено для краткости) */
+        @keyframes blink-eyes { 0%,35% {opacity:1} 36%,39% {opacity:0} 40% {opacity:1} 50%,65% {transform:translate(-200%,0)} }
+        @keyframes expand-body { 0%,40% {transform:scale(1,1) translate(60%,-25%)} 45%,55% {transform:scale(1.1,1.1) translate(60%,-28%)} 60% {transform:scale(0.89,0.89) translate(60%,-25%)} }
+        @keyframes uff { 0%,40% {width:0; height:0} 50%,54% {width:15px; height:15px; left:30%} 67% {width:0; height:0} }
+        @keyframes dance-fire { 59%,89% {width:0; height:0} 90%,0%,55% {width:16px; height:20px; background:#FFC107} }
+        @keyframes shake-left { 0%,59% {left:20%; transform:translate(60%,-15%)} 62% {left:18%} 65% {left:21%} 75% {transform:scale(1.15,0.85) translate(60%,-15%)} 91% {background:#F44336; border-color:#F44336} }
 
-        @keyframes Container {
-            0% { width: 200px } 6% { width: 80px }
-            71% { transform: scale(1); } 75% { transform: scale(1.2); } 77% { transform: scale(1); }
-            94% { width: 80px } 100% { width: 200px }
-        }
-        @keyframes Text { 0% { opacity: 1; } 6% { opacity: 0; } 94% { opacity: 0; } 100% { opacity: 1; } }
-        @keyframes Ok {
-            0% { opacity: 0 } 70% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
-            75% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-            77% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            92% { opacity: 1; } 100% { opacity: 0; }
-        }
-
-        #success-screen { display: none; text-align: center; padding: 20px; animation: slide 0.5s ease-out; }
-        .character { font-size: 80px; margin-bottom: 10px; display: block; }
-        .sign { background: white; color: black; padding: 10px; border-radius: 10px; display: inline-block; font-weight: bold; transform: rotate(-3deg); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .success-text { text-align: center; color: var(--primary); font-weight: bold; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -98,38 +74,28 @@
         <div id="step1" class="step active">
             <h2>🌐 Язык / Til</h2>
             <div class="btn-grid">
-                <button id="l_ru" onclick="setLang('ru')">Русский</button>
-                <button id="l_uz" onclick="setLang('uz')">O'zbekcha</button>
+                <button onclick="setLang('ru')">Русский</button>
+                <button onclick="setLang('uz')">O'zbekcha</button>
             </div>
         </div>
 
         <div id="step2" class="step">
             <h2 id="h2_2">Заказ</h2>
-            <div class="input-group">
-                <label id="lbl_what">Что везем?</label>
-                <input type="text" id="what" oninput="check2()">
-            </div>
-            <div class="input-group">
-                <label id="lbl_from">Откуда?</label>
-                <input type="text" id="from" oninput="check2()">
-            </div>
-            <div class="input-group">
-                <label id="lbl_weight">Вес</label>
-                <input type="text" id="weight" oninput="check2()">
-            </div>
+            <label id="lbl_what">Что везем?</label>
+            <input type="text" id="what" oninput="check2()">
+            <label id="lbl_from">Откуда?</label>
+            <input type="text" id="from" oninput="check2()">
+            <label id="lbl_weight">Вес</label>
+            <input type="text" id="weight" oninput="check2()">
             <button id="btn2" class="disabled" onclick="next(3)">Далее</button>
         </div>
 
         <div id="step3" class="step">
             <h2 id="h2_3">Доставка</h2>
-            <div class="input-group">
-                <label id="lbl_name">Имя</label>
-                <input type="text" id="name" oninput="check3()">
-            </div>
-            <div class="input-group">
-                <label id="lbl_phone">Телефон</label>
-                <input type="tel" id="phone" value="+998 ">
-            </div>
+            <label id="lbl_name">Имя</label>
+            <input type="text" id="name" oninput="check3()">
+            <label id="lbl_phone">Телефон</label>
+            <input type="tel" id="phone" value="+998 ">
             <button id="btn_loc" class="sec" onclick="getLoc()">📍 Локация</button>
             <button id="btn3" class="disabled" onclick="prepareFinal()" style="margin-top:10px">Проверить</button>
         </div>
@@ -137,62 +103,28 @@
         <div id="step4" class="step">
             <h2 id="h2_4">Итог</h2>
             <div id="summary" class="summary"></div>
-
-            <div class="container" id="final-touch-btn">
-                <span class="text" id="btn_text">ОФОРМИТЬ</span>
-                <svg class="fingerprint fingerprint-base" xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-                    <g class="fingerprint-out" fill="none" stroke-width="2" stroke-linecap="round">
-                        <path class="odd" d="m 25.117139,57.142857 c 0,0 -1.968558,-7.660465 -0.643619,-13.149003 1.324939,-5.488538 4.659682,-8.994751 4.659682,-8.994751" />
-                        <path class="odd" d="m 31.925369,31.477584 c 0,0 2.153609,-2.934998 9.074971,-5.105078 6.921362,-2.17008 11.799844,-0.618718 11.799844,-0.618718" />
-                        <path class="odd" d="m 57.131213,26.814448 c 0,0 5.127709,1.731228 9.899495,7.513009 4.771786,5.781781 4.772971,12.109204 4.772971,12.109204" />
-                        <path class="odd" d="m 72.334009,50.76769 0.09597,2.298098 -0.09597,2.386485" />
-                        <path class="even" d="m 27.849282,62.75 c 0,0 1.286086,-1.279223 1.25,-4.25 -0.03609,-2.970777 -1.606117,-7.675266 -0.625,-12.75 0.981117,-5.074734 4.5,-9.5 4.5,-9.5" />
-                        <path class="even" d="m 36.224282,33.625 c 0,0 8.821171,-7.174484 19.3125,-2.8125 10.491329,4.361984 11.870558,14.952665 11.870558,14.952665" />
-                        <path class="even" d="m 68.349282,49.75 c 0,0 0.500124,3.82939 0.5625,5.8125 0.06238,1.98311 -0.1875,5.9375 -0.1875,5.9375" />
-                        <path class="odd" d="m 31.099282,65.625 c 0,0 1.764703,-4.224042 2,-7.375 0.235297,-3.150958 -1.943873,-9.276886 0.426777,-15.441942 2.370649,-6.165056 8.073223,-7.933058 8.073223,-7.933058" />
-                        <path class="odd" d="m 45.849282,33.625 c 0,0 12.805566,-1.968622 17,9.9375 4.194434,11.906122 1.125,24.0625 1.125,24.0625" />
-                        <path class="even" d="m 59.099282,70.25 c 0,0 0.870577,-2.956221 1.1875,-4.5625 0.316923,-1.606279 0.5625,-5.0625 0.5625,-5.0625" />
-                        <path class="even" d="m 60.901059,56.286612 c 0,0 0.903689,-9.415996 -3.801777,-14.849112 -3.03125,-3.5 -7.329245,-4.723939 -11.867187,-3.8125 -5.523438,1.109375 -7.570313,5.75 -7.570313,5.75" />
-                        <path class="even" d="m 34.072577,68.846248 c 0,0 2.274231,-4.165782 2.839205,-9.033748 0.443558,-3.821814 -0.49394,-5.649939 -0.714206,-8.05386 -0.220265,-2.403922 0.21421,-4.63364 0.21421,-4.63364" />
-                        <path class="odd" d="m 37.774165,70.831845 c 0,0 2.692139,-6.147592 3.223034,-11.251208 0.530895,-5.103616 -2.18372,-7.95562 -0.153491,-13.647655 2.030229,-5.692035 8.108442,-4.538898 8.108442,-4.538898" />
-                        <path class="odd" d="m 54.391174,71.715729 c 0,0 2.359472,-5.427681 2.519068,-16.175068 0.159595,-10.747388 -4.375223,-12.993087 -4.375223,-12.993087" />
-                        <path class="even" d="m 49.474282,73.625 c 0,0 3.730297,-8.451831 3.577665,-16.493718 -0.152632,-8.041887 -0.364805,-11.869326 -4.765165,-11.756282 -4.400364,0.113044 -3.875,4.875 -3.875,4.875" />
-                        <path class="even" d="m 41.132922,72.334447 c 0,0 2.49775,-5.267079 3.181981,-8.883029 0.68423,-3.61595 0.353553,-9.413359 0.353553,-9.413359" />
-                        <path class="odd" d="m 45.161782,73.75 c 0,0 1.534894,-3.679847 2.40625,-6.53125 0.871356,-2.851403 1.28125,-7.15625 1.28125,-7.15625" />
-                        <path class="odd" d="m 48.801947,56.125 c 0,0 0.234502,-1.809418 0.109835,-3.375 -0.124667,-1.565582 -0.5625,-3.1875 -0.5625,-3.1875" />
-                    </g>
-                </svg>
-                <svg class="fingerprint fingerprint-active" xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-                    <g class="fingerprint-out" fill="none" stroke-width="2" stroke-linecap="round">
-                        <path class="odd" d="m 25.117139,57.142857 c 0,0 -1.968558,-7.660465 -0.643619,-13.149003 1.324939,-5.488538 4.659682,-8.994751 4.659682,-8.994751" />
-                        <path class="odd" d="m 31.925369,31.477584 c 0,0 2.153609,-2.934998 9.074971,-5.105078 6.921362,-2.17008 11.799844,-0.618718 11.799844,-0.618718" />
-                        <path class="odd" d="m 57.131213,26.814448 c 0,0 5.127709,1.731228 9.899495,7.513009 4.771786,5.781781 4.772971,12.109204 4.772971,12.109204" />
-                        <path class="odd" d="m 72.334009,50.76769 0.09597,2.298098 -0.09597,2.386485" />
-                        <path class="even" d="m 27.849282,62.75 c 0,0 1.286086,-1.279223 1.25,-4.25 -0.03609,-2.970777 -1.606117,-7.675266 -0.625,-12.75 0.981117,-5.074734 4.5,-9.5 4.5,-9.5" />
-                        <path class="even" d="m 36.224282,33.625 c 0,0 8.821171,-7.174484 19.3125,-2.8125 10.491329,4.361984 11.870558,14.952665 11.870558,14.952665" />
-                        <path class="even" d="m 68.349282,49.75 c 0,0 0.500124,3.82939 0.5625,5.8125 0.06238,1.98311 -0.1875,5.9375 -0.1875,5.9375" />
-                        <path class="odd" d="m 31.099282,65.625 c 0,0 1.764703,-4.224042 2,-7.375 0.235297,-3.150958 -1.943873,-9.276886 0.426777,-15.441942 2.370649,-6.165056 8.073223,-7.933058 8.073223,-7.933058" />
-                        <path class="odd" d="m 45.849282,33.625 c 0,0 12.805566,-1.968622 17,9.9375 4.194434,11.906122 1.125,24.0625 1.125,24.0625" />
-                        <path class="even" d="m 59.099282,70.25 c 0,0 0.870577,-2.956221 1.1875,-4.5625 0.316923,-1.606279 0.5625,-5.0625 0.5625,-5.0625" />
-                        <path class="even" d="m 60.901059,56.286612 c 0,0 0.903689,-9.415996 -3.801777,-14.849112 -3.03125,-3.5 -7.329245,-4.723939 -11.867187,-3.8125 -5.523438,1.109375 -7.570313,5.75 -7.570313,5.75" />
-                        <path class="even" d="m 34.072577,68.846248 c 0,0 2.274231,-4.165782 2.839205,-9.033748 0.443558,-3.821814 -0.49394,-5.649939 -0.714206,-8.05386 -0.220265,-2.403922 0.21421,-4.63364 0.21421,-4.63364" />
-                        <path class="odd" d="m 37.774165,70.831845 c 0,0 2.692139,-6.147592 3.223034,-11.251208 0.530895,-5.103616 -2.18372,-7.95562 -0.153491,-13.647655 2.030229,-5.692035 8.108442,-4.538898 8.108442,-4.538898" />
-                        <path class="odd" d="m 54.391174,71.715729 c 0,0 2.359472,-5.427681 2.519068,-16.175068 0.159595,-10.747388 -4.375223,-12.993087 -4.375223,-12.993087" />
-                        <path class="even" d="m 49.474282,73.625 c 0,0 3.730297,-8.451831 3.577665,-16.493718 -0.152632,-8.041887 -0.364805,-11.869326 -4.765165,-11.756282 -4.400364,0.113044 -3.875,4.875 -3.875,4.875" />
-                        <path class="even" d="m 41.132922,72.334447 c 0,0 2.49775,-5.267079 3.181981,-8.883029 0.68423,-3.61595 0.353553,-9.413359 0.353553,-9.413359" />
-                        <path class="odd" d="m 45.161782,73.75 c 0,0 1.534894,-3.679847 2.40625,-6.53125 0.871356,-2.851403 1.28125,-7.15625 1.28125,-7.15625" />
-                        <path class="odd" d="m 48.801947,56.125 c 0,0 0.234502,-1.809418 0.109835,-3.375 -0.124667,-1.565582 -0.5625,-3.1875 -0.5625,-3.1875" />
-                    </g>
-                </svg>
-                <svg class="ok" xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M34.912 50.75l10.89 10.125L67 36.75" fill="none" stroke="#fff" stroke-width="6"/></svg>
-            </div>
-
+            <button id="final-btn" onclick="sendOrder()">🚀 Оформить заказ</button>
             <button class="sec" style="margin-top:10px" onclick="next(3)">Назад</button>
         </div>
 
         <div id="success-screen">
-            <span class="character">😊</span>
-            <div class="sign" id="final_msg">Приходите еще!</div>
+            <div class="wrapper">
+                <div class="candles">
+                    <div class="candle1">
+                        <div class="candle1__body">
+                            <div class="candle1__eyes"><span class="candle1__eyes-one"></span><span class="candle1__eyes-two"></span></div>
+                            <div class="candle1__mouth"></div>
+                        </div>
+                        <div class="candle1__stick"></div>
+                    </div>
+                    <div class="candle2">
+                        <div class="candle2__body"></div>
+                    </div>
+                    <div class="candle2__fire"></div>
+                </div>
+                <div class="floor"></div>
+            </div>
+            <div style="position:absolute; bottom:0; width:100%;" class="success-text" id="final_msg">Заказ принят!</div>
         </div>
     </div>
 
@@ -201,7 +133,7 @@
         let order = { lat: 0, lon: 0 };
         tg.expand();
 
-        // Маска телефона
+        // Маска телефона (стандартная)
         const phoneInput = document.getElementById('phone');
         phoneInput.addEventListener('input', (e) => {
             let val = e.target.value.replace(/\D/g, '');
@@ -216,8 +148,8 @@
         });
 
         const langData = {
-            ru: { h2: "Заказ", what: "Что везем?", from: "Откуда?", weight: "Вес", h3: "Доставка", name: "Имя", check: "Проверить", btn: "ОФОРМИТЬ", sign: "Приходите еще!" },
-            uz: { h2: "Buyurtma", what: "Nima?", from: "Qayerdan?", weight: "Vazni", h3: "Yetkazib berish", name: "Ism", check: "Tekshirish", btn: "TASDIQLASH", sign: "Yana keling!" }
+            ru: { h2: "Заказ", what: "Что везем?", from: "Откуда?", weight: "Вес", h3: "Доставка", name: "Имя", check: "Проверить", final: "🚀 Оформить", sign: "Заказ принят! Ждите звонка." },
+            uz: { h2: "Buyurtma", what: "Nima?", from: "Qayerdan?", weight: "Vazni", h3: "Yetkazib berish", name: "Ism", check: "Tekshirish", final: "🚀 Buyurtma berish", sign: "Buyurtma qabul qilindi!" }
         };
 
         function setLang(l) {
@@ -230,7 +162,7 @@
             document.getElementById('h2_3').innerText = t.h3;
             document.getElementById('lbl_name').innerText = t.name;
             document.getElementById('btn3').innerText = t.check;
-            document.getElementById('btn_text').innerText = t.btn;
+            document.getElementById('final-btn').innerText = t.final;
             document.getElementById('final_msg').innerText = t.sign;
             next(2);
         }
@@ -252,11 +184,9 @@
 
         function getLoc() {
             navigator.geolocation.getCurrentPosition(pos => {
-                order.lat = pos.coords.latitude;
-                order.lon = pos.coords.longitude;
-                document.getElementById('btn_loc').innerText = "✅ OK";
-                check3();
-            }, () => alert("GPS?"));
+                order.lat = pos.coords.latitude; order.lon = pos.coords.longitude;
+                document.getElementById('btn_loc').innerText = "✅ OK"; check3();
+            }, () => alert("Включите GPS"));
         }
 
         function prepareFinal() {
@@ -269,33 +199,21 @@
             next(4);
         }
 
-        // --- ЛОГИКА НОВОЙ КНОПКИ ---
-        const finalTouchBtn = document.getElementById('final-touch-btn');
-        finalTouchBtn.addEventListener('click', function() {
-            if (!this.classList.contains('active')) {
-                this.classList.add('active');
-            }
-        });
-
-        // Слушаем завершение анимации
-        finalTouchBtn.addEventListener('animationend', (e) => {
-            // Анимация 'Container' - самая последняя в цикле
-            if (e.animationName === 'Container') {
-                sendOrder();
-            }
-        });
-
         function sendOrder() {
-            const card = document.getElementById('main-card');
-            card.classList.add('fly-away');
+            // 1. Отправляем данные боту сразу
+            tg.sendData(JSON.stringify(order));
 
+            // 2. Скрываем интерфейс и показываем свечи
+            document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
+            document.getElementById('success-screen').style.display = 'block';
+
+            // Логика переключения фона (синхронно с анимацией)
+            setTimeout(() => { document.body.classList.add('dark-mode'); }, 1800);
+
+            // 3. Закрываем приложение ровно после одного цикла анимации (3000мс)
             setTimeout(() => {
-                tg.sendData(JSON.stringify(order));
-                document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
-                card.classList.remove('fly-away');
-                document.getElementById('success-screen').style.display = 'block';
-                setTimeout(() => tg.close(), 2500);
-            }, 800);
+                tg.close();
+            }, 4500); // Даем посмотреть анимацию один раз полностью + чуть-чуть запаса
         }
     </script>
 </body>
