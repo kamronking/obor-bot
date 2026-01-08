@@ -3,107 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Obor Pro v2</title>
+    <title>Obor Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --primary: #2ecc71;
-            --bg: #0f172a;
-            --card: rgba(255, 255, 255, 0.07);
-            --text: #f8fafc;
-        }
-
+        :root { --primary: #2ecc71; --bg: #0f172a; --card: rgba(255, 255, 255, 0.08); --text: #f8fafc; }
         body {
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            background: #0f172a;
-            color: var(--text);
-            margin: 0; padding: 15px;
-            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a; color: var(--text);
+            margin: 0; padding: 15px; min-height: 100vh;
         }
-
-        .step { display: none; opacity: 0; transform: translateY(10px); transition: 0.3s ease; }
-        .step.active { display: block; opacity: 1; transform: translateY(0); }
+        .step { display: none; animation: slide 0.3s ease-out forwards; }
+        .step.active { display: block; }
+        @keyframes slide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .card {
-            background: var(--card);
-            backdrop-filter: blur(15px);
+            background: var(--card); backdrop-filter: blur(12px);
             border: 1px solid rgba(255,255,255,0.1);
-            padding: 20px; border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            padding: 20px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
         }
+        h2 { font-size: 22px; color: var(--primary); margin: 0 0 20px 0; text-align: center; }
 
-        h2 { font-size: 22px; margin: 0 0 20px 0; color: var(--primary); text-align: center; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        button {
+            width: 100%; padding: 16px; border-radius: 14px; border: none;
+            background: var(--primary); color: #000; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: 0.2s;
+        }
+        button.sec { background: #334155; color: white; }
+        button.active-choice { outline: 3px solid var(--primary); background: var(--primary); color: #000; }
+        button.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
 
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 6px; font-size: 13px; color: #94a3b8; }
-
         input {
-            width: 100%; padding: 14px; border-radius: 12px;
-            border: 2px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.3); color: white;
-            font-size: 16px; outline: none; box-sizing: border-box;
+            width: 100%; padding: 14px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3); color: white; font-size: 16px; outline: none; box-sizing: border-box;
         }
         input:focus { border-color: var(--primary); }
 
-        button {
-            width: 100%; padding: 15px; border-radius: 12px; border: none;
-            background: var(--primary); color: #000;
-            font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px;
-        }
-        button.sec { background: #334155; color: white; }
-        button.disabled { opacity: 0.3; pointer-events: none; }
-
-        .summary-box { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; margin-bottom: 15px; font-size: 14px; line-height: 1.6; }
-        .loc-badge { font-size: 12px; margin-top: 5px; display: block; color: var(--primary); }
+        .summary { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; margin-bottom: 15px; }
+        .success { color: var(--primary); font-size: 12px; margin-top: 5px; display: block; }
     </style>
 </head>
 <body>
-
     <div class="card">
         <div id="step1" class="step active">
-            <h2>Obor Delivery</h2>
-            <button onclick="setLang('ru')">🇷🇺 Русский</button>
-            <button onclick="setLang('uz')" class="sec">🇺🇿 O'zbekcha</button>
+            <h2>🌐 Til / Язык</h2>
+            <div class="btn-grid">
+                <button id="l_ru" onclick="setLang('ru')">Русский</button>
+                <button id="l_uz" onclick="setLang('uz')">O'zbekcha</button>
+            </div>
         </div>
 
         <div id="step2" class="step">
             <h2 id="h2_2">Заказ</h2>
             <div class="input-group">
-                <label id="lbl_what">Что привезти?</label>
+                <label id="lbl_what">Что везем?</label>
                 <input type="text" id="what" oninput="check2()">
             </div>
             <div class="input-group">
-                <label id="lbl_from">Откуда забрать?</label>
+                <label id="lbl_from">Откуда?</label>
                 <input type="text" id="from" oninput="check2()">
             </div>
             <div class="input-group">
-                <label id="lbl_weight">Примерный вес</label>
+                <label id="lbl_weight">Вес</label>
                 <input type="text" id="weight" oninput="check2()">
             </div>
-            <button id="btn2" class="disabled" onclick="next(3)">Далее</button>
-            <button class="sec" onclick="next(1)">Назад</button>
+            <button id="btn2" class="disabled" onclick="next(3)">Keyingi / Далее</button>
         </div>
 
         <div id="step3" class="step">
-            <h2 id="h2_3">Контакты</h2>
+            <h2 id="h2_3">Доставка</h2>
             <div class="input-group">
-                <label id="lbl_name">Ваше имя</label>
+                <label id="lbl_name">Имя</label>
                 <input type="text" id="name" oninput="check3()">
             </div>
             <div class="input-group">
-                <label id="lbl_phone">Номер телефона</label>
-                <input type="tel" id="phone" value="+998 ">
+                <label id="lbl_phone">Телефон</label>
+                <input type="tel" id="phone" value="+998">
             </div>
             <button id="btn_loc" class="sec" onclick="getLoc()">📍 Отправить локацию</button>
-            <span id="loc_ok" style="display:none" class="loc-badge">✅ Локация получена</span>
-            <button id="btn3" class="disabled" onclick="showFinal()">Проверить заказ</button>
-            <button class="sec" onclick="next(2)">Назад</button>
+            <span id="loc_ok" style="display:none" class="success">✅ Локация получена</span>
+            <button id="btn3" class="disabled" onclick="prepareFinal()" style="margin-top:10px">Tekshirish / Проверить</button>
         </div>
 
         <div id="step4" class="step">
             <h2 id="h2_4">Подтверждение</h2>
-            <div class="summary-box" id="summary"></div>
-            <button onclick="sendOrder()">🚀 Оформить заказ</button>
+            <div id="summary" class="summary"></div>
+            <button onclick="sendOrder()">✅ Оформить</button>
             <button class="sec" onclick="tg.close()">❌ Отмена</button>
         </div>
     </div>
@@ -113,21 +100,24 @@
         let order = { lat: 0, lon: 0 };
         tg.expand();
 
-        // Фиксация +998
-        const p = document.getElementById('phone');
-        p.addEventListener('input', () => {
-            if (!p.value.startsWith('+998 ')) p.value = '+998 ';
+        // Логика телефона: нельзя стереть +998
+        const phoneInput = document.getElementById('phone');
+        phoneInput.addEventListener('keydown', (e) => {
+            if (e.target.selectionStart < 4 && (e.key === 'Backspace' || e.key === 'Delete')) e.preventDefault();
+        });
+        phoneInput.addEventListener('input', (e) => {
+            if (!e.target.value.startsWith('+998')) e.target.value = '+998' + e.target.value.replace(/^\+998/, '');
             check3();
         });
 
-        const texts = {
-            ru: { h2: "Заказ", what: "Что привезти?", from: "Откуда?", weight: "Вес", ex1: "Пицца", ex2: "Корзинка", ex3: "2 кг", h3: "Контакты", name: "Имя", phone: "Телефон", btn: "Далее", back: "Назад", loc: "Отправить локацию", final: "Оформить", check: "Проверить" },
-            uz: { h2: "Buyurtma", what: "Nima?", from: "Qayerdan?", weight: "Vazni", ex1: "Pitsa", ex2: "Korzinka", ex3: "2 kg", h3: "Kontaktlar", name: "Ism", phone: "Telefon", btn: "Keyingi", back: "Orqaga", loc: "Lokatsiyani yuborish", final: "Buyurtma berish", check: "Tekshirish" }
+        const langData = {
+            ru: { h2: "Заказ", what: "Что привезти?", from: "Откуда?", weight: "Вес", ex1: "Пицца", ex2: "Корзинка", ex3: "2 кг", h3: "Доставка", name: "Ваше имя", loc: "📍 Отправить локацию", check: "Проверить" },
+            uz: { h2: "Buyurtma", what: "Nima olib kelish kerak?", from: "Qayerdan?", weight: "Vazni", ex1: "Pitsa", ex2: "Korzinka", ex3: "2 kg", h3: "Yetkazib berish", name: "Ismingiz", loc: "📍 Lokatsiyani yuborish", check: "Tekshirish" }
         };
 
         function setLang(l) {
             order.lang = l;
-            const t = texts[l];
+            const t = langData[l];
             document.getElementById('h2_2').innerText = t.h2;
             document.getElementById('lbl_what').innerText = t.what;
             document.getElementById('what').placeholder = t.ex1;
@@ -137,24 +127,28 @@
             document.getElementById('weight').placeholder = t.ex3;
             document.getElementById('h2_3').innerText = t.h3;
             document.getElementById('lbl_name').innerText = t.name;
-            document.getElementById('btn2').innerText = t.btn;
-            document.getElementById('btn3').innerText = t.check;
             document.getElementById('btn_loc').innerText = t.loc;
-            next(2);
+            document.getElementById('btn3').innerText = t.check;
+
+            // Подсветка выбора
+            document.getElementById('l_ru').className = l === 'ru' ? 'active-choice' : 'sec';
+            document.getElementById('l_uz').className = l === 'uz' ? 'active-choice' : 'sec';
+
+            setTimeout(() => next(2), 400);
         }
 
         function next(s) {
-            document.querySelectorAll('.step').forEach(e => e.classList.remove('active'));
-            document.getElementById('step'+s).classList.add('active');
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById('step' + s).classList.add('active');
         }
 
         function check2() {
-            const ok = document.getElementById('what').value && document.getElementById('from').value;
+            const ok = document.getElementById('what').value.length > 1 && document.getElementById('from').value.length > 1;
             document.getElementById('btn2').classList.toggle('disabled', !ok);
         }
 
         function check3() {
-            const ok = document.getElementById('name').value && p.value.length > 12 && order.lat !== 0;
+            const ok = document.getElementById('name').value.length > 1 && phoneInput.value.length > 11 && order.lat !== 0;
             document.getElementById('btn3').classList.toggle('disabled', !ok);
         }
 
@@ -165,23 +159,21 @@
                 document.getElementById('loc_ok').style.display = 'block';
                 document.getElementById('btn_loc').style.display = 'none';
                 check3();
-            }, () => alert("Включите GPS!"));
+            }, () => alert("GPS error!"));
         }
 
-        function showFinal() {
+        function prepareFinal() {
             order.what = document.getElementById('what').value;
             order.from = document.getElementById('from').value;
+            order.weight = document.getElementById('weight').value;
             order.name = document.getElementById('name').value;
-            order.phone = p.value;
+            order.phone = phoneInput.value;
 
-            const html = `<b>${order.what}</b><br>📍 ${order.from}<br>👤 ${order.name}<br>📞 ${order.phone}`;
-            document.getElementById('summary').innerHTML = html;
+            document.getElementById('summary').innerHTML = `📦 ${order.what}<br>🛒 ${order.from}<br>⚖️ ${order.weight}<br>👤 ${order.name}<br>📞 ${order.phone}`;
             next(4);
         }
 
-        function sendOrder() {
-            tg.sendData(JSON.stringify(order));
-        }
+        function sendOrder() { tg.sendData(JSON.stringify(order)); }
     </script>
 </body>
 </html>
