@@ -3,67 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Obor App</title>
+    <title>Obor Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --p: #248b1d; --bg: var(--tg-theme-bg-color); --txt: var(--tg-theme-text-color); }
-        body { font-family: sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding: 20px; }
-        .step { display: none; transition: 0.3s; }
-        .active { display: block; }
-        button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: none; background: var(--p); color: white; font-weight: bold; cursor: pointer; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; background: var(--tg-theme-secondary-bg-color); color: var(--txt); }
-        .loc-status { font-size: 12px; color: var(--p); margin-bottom: 10px; }
+        :root {
+            --primary: #2ecc71;
+            --bg: #0f172a;
+            --card: rgba(255, 255, 255, 0.05);
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: radial-gradient(circle at top, #1e293b, #0f172a);
+            color: var(--text);
+            margin: 0; padding: 20px;
+            min-height: 100vh; overflow: hidden;
+        }
+
+        .step { display: none; transform: translateX(50px); opacity: 0; transition: 0.4s ease; }
+        .step.active { display: block; transform: translateX(0); opacity: 1; }
+
+        .card {
+            background: var(--card);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px; border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        h2 { font-size: 24px; font-weight: 700; margin-top: 0; color: var(--primary); }
+
+        .input-group { margin-bottom: 20px; animation: fadeInUp 0.5s ease forwards; opacity: 0; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #94a3b8; }
+
+        input {
+            width: 100%; padding: 15px; border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2); color: white;
+            font-size: 16px; outline: none; box-sizing: border-box;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); }
+
+        button {
+            width: 100%; padding: 16px; border-radius: 14px; border: none;
+            background: var(--primary); color: #000;
+            font-size: 16px; font-weight: 700; cursor: pointer;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        }
+        button:active { transform: scale(0.95); opacity: 0.8; }
+        button.secondary { background: #334155; color: white; box-shadow: none; margin-top: 10px; }
+
+        .disabled { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
+
+        .loc-badge {
+            display: inline-block; padding: 6px 12px; border-radius: 20px;
+            font-size: 12px; margin-bottom: 10px; background: rgba(255,255,255,0.1);
+        }
+        .success-text { color: var(--primary); }
     </style>
 </head>
 <body>
-    <div id="step1" class="step active">
-        <h2>🌐 Выберите язык / Tilni tanlang</h2>
-        <button onclick="setLang('ru')">🇷🇺 Русский</button>
-        <button onclick="setLang('uz')">🇺🇿 O'zbekcha</button>
-    </div>
 
-    <div id="step2" class="step">
-        <h2 id="h2_2">Что везем?</h2>
-        <input type="text" id="what" placeholder="Что привезти?">
-        <input type="text" id="from" placeholder="Откуда забрать?">
-        <input type="text" id="weight" placeholder="Примерный вес">
-        <button onclick="next(3)">Далее / Keyingi</button>
-    </div>
+    <div class="card">
+        <div id="step1" class="step active">
+            <h2>Obor Delivery</h2>
+            <button onclick="setLang('ru')">🇷🇺 Русский</button>
+            <button onclick="setLang('uz')" class="secondary">🇺🇿 O'zbekcha</button>
+        </div>
 
-    <div id="step3" class="step">
-        <h2 id="h2_3">Ваши контакты</h2>
-        <input type="text" id="name" placeholder="Ваше имя">
-        <input type="tel" id="phone" value="+998">
-        <p class="loc-status" id="l_stat"></p>
-        <button onclick="getLoc()" style="background: #555;">📍 Отправить локацию</button>
-        <button onclick="sendOrder()">✅ Оформить заказ</button>
+        <div id="step2" class="step">
+            <h2 id="h2_2">Заказ</h2>
+            <div class="input-group" style="animation-delay: 0.1s;">
+                <label id="lbl_what">Что привезти?</label>
+                <input type="text" id="what" placeholder="Напр: Пицца" oninput="checkStep2()">
+            </div>
+            <div class="input-group" style="animation-delay: 0.2s;">
+                <label id="lbl_from">Откуда забрать?</label>
+                <input type="text" id="from" placeholder="Напр: Корзинка" oninput="checkStep2()">
+            </div>
+            <div class="input-group" style="animation-delay: 0.3s;">
+                <label id="lbl_weight">Примерный вес</label>
+                <input type="text" id="weight" placeholder="Напр: 2 кг" oninput="checkStep2()">
+            </div>
+            <button id="next2" class="disabled" onclick="next(3)">Далее</button>
+        </div>
+
+        <div id="step3" class="step">
+            <h2 id="h2_3">Доставка</h2>
+            <div class="input-group">
+                <label id="lbl_name">Ваше имя</label>
+                <input type="text" id="name" oninput="checkStep3()">
+            </div>
+            <div class="input-group">
+                <label id="lbl_phone">Номер телефона</label>
+                <input type="tel" id="phone" value="+998 ">
+            </div>
+            <div id="l_stat" class="loc-badge">📍 Локация не выбрана</div>
+            <button onclick="getLoc()" class="secondary" id="btn_loc">📍 Отправить локацию</button>
+            <button onclick="sendOrder()" id="btn_final" class="disabled" style="margin-top:15px">Оформить заказ</button>
+        </div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         let order = { lat: 0, lon: 0 };
         tg.expand();
+        tg.enableClosingConfirmation();
+
+        // Маска для телефона
+        const phoneInput = document.getElementById('phone');
+        phoneInput.addEventListener('input', (e) => {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,2})(\d{0,3})(\d{0,2})(\d{0,2})/);
+            e.target.value = !x[2] ? '+' + x[1] : '+' + x[1] + ' (' + x[2] + ') ' + x[3] + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
+            if (e.target.value.length < 4) e.target.value = '+998 ';
+            checkStep3();
+        });
 
         function setLang(l) {
             order.lang = l;
             if(l === 'uz') {
-                document.getElementById('h2_2').innerText = 'Nima olib kelish kerak?';
-                document.getElementById('h2_3').innerText = 'Kontaktlar';
+                document.getElementById('h2_2').innerText = 'Buyurtma';
+                document.getElementById('lbl_what').innerText = 'Nima olib kelish kerak?';
+                document.getElementById('lbl_from').innerText = 'Qayerdan?';
+                document.getElementById('lbl_weight').innerText = 'Vazni';
+                document.getElementById('h2_3').innerText = 'Yetkazib berish';
+                document.getElementById('lbl_name').innerText = 'Ismingiz';
+                document.getElementById('lbl_phone').innerText = 'Telefon raqamingiz';
+                document.getElementById('btn_loc').innerText = '📍 Lokatsiyani yuborish';
+                document.getElementById('btn_final').innerText = 'Buyurtma berish';
+                document.getElementById('l_stat').innerText = '📍 Lokatsiya tanlanmagan';
             }
             next(2);
         }
 
         function next(s) {
             document.querySelectorAll('.step').forEach(e => e.classList.remove('active'));
-            document.getElementById('step'+s).classList.add('active');
+            setTimeout(() => {
+                document.getElementById('step'+s).classList.add('active');
+            }, 100);
+        }
+
+        function checkStep2() {
+            const w = document.getElementById('what').value;
+            const f = document.getElementById('from').value;
+            const btn = document.getElementById('next2');
+            if(w.length > 2 && f.length > 2) btn.classList.remove('disabled');
+            else btn.classList.add('disabled');
+        }
+
+        function checkStep3() {
+            const n = document.getElementById('name').value;
+            const p = document.getElementById('phone').value;
+            const btn = document.getElementById('btn_final');
+            if(n.length > 1 && p.length >= 19 && order.lat !== 0) btn.classList.remove('disabled');
+            else btn.classList.add('disabled');
         }
 
         function getLoc() {
+            const b = document.getElementById('btn_loc');
+            b.innerText = "⏳ Поиск...";
             navigator.geolocation.getCurrentPosition(pos => {
                 order.lat = pos.coords.latitude;
                 order.lon = pos.coords.longitude;
-                document.getElementById('l_stat').innerText = "✅ Локация получена / Lokatsiya olindi";
-            }, () => alert("Включите GPS!"));
+                document.getElementById('l_stat').innerHTML = "✅ <span class='success-text'>Локация получена</span>";
+                b.style.display = 'none';
+                checkStep3();
+            }, () => {
+                alert("Ошибка GPS. Разрешите доступ к локации!");
+                b.innerText = "📍 Попробовать снова";
+            }, {enableHighAccuracy: true});
         }
 
         function sendOrder() {
@@ -72,8 +185,6 @@
             order.weight = document.getElementById('weight').value;
             order.name = document.getElementById('name').value;
             order.phone = document.getElementById('phone').value;
-
-            if(!order.name || !order.phone) return alert("Заполните всё!");
             tg.sendData(JSON.stringify(order));
         }
     </script>
