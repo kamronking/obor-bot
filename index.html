@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Form</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 20px;
+            margin: 0;
+        }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            background: var(--tg-theme-secondary-bg-color, #efefef);
+            color: var(--tg-theme-text-color);
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--tg-theme-button-color, #248b1d);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-group">
+        <label>🙋‍♂️ Ваше имя</label>
+        <input type="text" id="name" placeholder="Введите имя...">
+    </div>
+    <div class="form-group">
+        <label>📱 Номер телефона</label>
+        <input type="tel" id="phone" placeholder="+998...">
+    </div>
+    <button id="main_btn">Подтвердить данные</button>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand(); // Разворачиваем на все окно
+
+        let btn = document.getElementById("main_btn");
+
+        btn.addEventListener("click", () => {
+            let name = document.getElementById("name").value;
+            let phone = document.getElementById("phone").value;
+
+            if (name.length < 2) {
+                alert("Введите корректное имя");
+                return;
+            }
+
+            let data = {
+                name: name,
+                phone: phone
+            };
+
+            // Отправляем данные обратно в бот
+            tg.sendData(JSON.stringify(data));
+        });
+    </script>
+</body>
+</html>

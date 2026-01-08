@@ -1,6 +1,7 @@
 import asyncio
 import re
 import os
+import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
@@ -13,22 +14,28 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
     Message, ReplyKeyboardMarkup, KeyboardButton,
-    ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+    ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery,
+    WebAppInfo
 )
 
-# Загружаем переменные из .env
+# Загружаем переменные
 load_dotenv()
 
-# Импорт функций из google_sheets.py
-try:
-    from google_sheets import append_order, update_order_status, get_stats
-except ImportError:
-    print("⚠️ Ошибка: Проверьте файл google_sheets.py!")
+# ИМПОРТ ФУНКЦИЙ
+from google_sheets import append_order, update_order_status, get_stats
 
-# --- НАСТРОЙКИ (Берем из переменных окружения) ---
+# --- НАСТРОЙКИ ---
 TOKEN = os.getenv('BOT_TOKEN')
-COURIER_ID = int(os.getenv('COURIER_ID', 0))
-ADMIN_ID = int(os.getenv('ADMIN_ID', 0))
+try:
+    COURIER_ID = int(os.getenv('COURIER_ID', 0))
+    ADMIN_ID = int(os.getenv('ADMIN_ID', 0))
+except (TypeError, ValueError):
+    COURIER_ID = 0
+    ADMIN_ID = 0
+
+# ССЫЛКА НА ВАШ MINI APP (GitHub Pages)
+WEB_APP_URL = "https://kamronking.github.io/obor-bot/"
+
 TIMEZONE = ZoneInfo("Asia/Tashkent")
 
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
@@ -56,6 +63,8 @@ class AdminStates(StatesGroup):
 
 TEXTS = {
     'ru': {
+        'open_app': '📝 Заполнить форму заказа',
+        'ask_app': 'Пожалуйста, нажмите кнопку ниже, чтобы ввести имя и телефон:',
         'ask_type': '🚚 <b>Выберите тип доставки:</b>',
         'type_buy': '🛍 Покупка',
         'type_send': '📦 Посылка',
@@ -63,8 +72,6 @@ TEXTS = {
         'ask_where_from': '🛒 <b>Откуда забрать?</b>',
         'ask_what': '📦 <b>Что именно нужно привезти?</b>',
         'ask_dropoff': '📍 <b>Отправьте вашу локацию кнопкой:</b>',
-        'ask_name': '🙋‍♂️ <b>Как вас зовут?</b>',
-        'ask_phone': '📱 <b>Ваш номер телефона:</b>',
         'summary_title': '📋 <b>Ваш заказ:</b>\n',
         'summary_item': '🔹 {ot}: {ss} -> {sw} ({w})\n',
         'summary_footer': '\n🙋‍♂️ Имя: {sn}\n📱 Тел: {ph}',
@@ -74,14 +81,14 @@ TEXTS = {
         'err_text': '⚠️ Минимум 2 символа!',
         'err_type': '⚠️ Выберите вариант из меню.',
         'err_loc': '⚠️ Нажмите на кнопку 📍 Локация.',
-        'err_phone': '⚠️ Введите номер (7-12 цифр).',
-        'err_name': '⚠️ Имя должно содержать только буквы.',
         'btn_cancel': '❌ Отмена заказа',
         'order_accepted': '🚕 Ваш заказ <b>#{id}</b> принят!',
         'order_delivered': '🏁 Ваш заказ <b>#{id}</b> доставлен!',
         'cancel_success': '🚫 Отменено.'
     },
     'uz': {
+        'open_app': '📝 Buyurtma formasini toʻldirish',
+        'ask_app': 'Ism va telefon raqamingizni kiritish uchun tugmani bosing:',
         'ask_type': '🚚 <b>Yetkazib berish turini tanlang:</b>',
         'type_buy': '🛍 Xarid qilish',
         'type_send': '📦 Posilka',
@@ -89,8 +96,6 @@ TEXTS = {
         'ask_where_from': '🛒 <b>Qayerdan olib kelish kerak?</b>',
         'ask_what': '📦 <b>Nima olib kelish kerak?</b>',
         'ask_dropoff': '📍 <b>Lokatsiyangizni yuboring:</b>',
-        'ask_name': '🙋‍♂️ <b>Ismingiz nima?</b>',
-        'ask_phone': '📱 <b>Telefon raqamingiz:</b>',
         'summary_title': '📋 <b>Sizning buyurtmangiz:</b>\n',
         'summary_item': '🔹 {ot}: {ss} -> {sw} ({w})\n',
         'summary_footer': '\n🙋‍♂️ Ism: {sn}\n📱 Tel: {ph}',
@@ -100,8 +105,6 @@ TEXTS = {
         'err_text': '⚠️ Kamida 2 ta belgi!',
         'err_type': '⚠️ Menyudan tanlang.',
         'err_loc': '⚠️ 📍 tugmasini bosing.',
-        'err_phone': '⚠️ Raqam noto’g’ri.',
-        'err_name': '⚠️ Ism faqat harflardan iborat bo’lsin.',
         'btn_cancel': '❌ Bekor qilish',
         'order_accepted': '🚕 <b>#{id}</b> qabul qilindi!',
         'order_delivered': '🏁 <b>#{id}</b> yetkazildi!',
@@ -110,8 +113,7 @@ TEXTS = {
 }
 
 
-# --- 1. АДМИН-ПАНЕЛЬ ---
-
+# --- АДМИН ПАНЕЛЬ (без изменений) ---
 @router.message(Command("admin"), F.from_user.id == ADMIN_ID)
 async def admin_panel(message: Message, state: FSMContext):
     await state.clear()
@@ -132,64 +134,53 @@ async def show_stats_handler(message: Message):
     await message.answer(msg)
 
 
-@router.message(F.text == "📢 Рассылка", F.from_user.id == ADMIN_ID)
-async def start_broadcast(message: Message, state: FSMContext):
-    await state.set_state(AdminStates.WaitingForBroadcast)
-    await message.answer("📝 Введите текст сообщения для курьеров (или напишите 'отмена'):",
-                         reply_markup=ReplyKeyboardRemove())
-
-
-@router.message(AdminStates.WaitingForBroadcast, F.from_user.id == ADMIN_ID)
-async def process_broadcast(message: Message, state: FSMContext):
-    if message.text.lower() != 'отмена':
-        try:
-            await bot.send_message(COURIER_ID, f"📢 <b>СООБЩЕНИЕ ОТ АДМИНИСТРАЦИИ:</b>\n\n{message.text}")
-            await message.answer("✅ Отправлено курьерам!")
-        except Exception as e:
-            await message.answer(f"❌ Ошибка: {e}")
-    await state.clear()
-    await admin_panel(message, state)
-
-
-# --- 2. ОБЩИЕ КОМАНДЫ ---
-
-@router.message(F.text.in_(['❌ Отмена заказа', '❌ Bekor qilish', '🏠 Выйти']))
-async def cancel_handler(message: Message, state: FSMContext):
-    await state.clear()
-    lang = LANGUAGE.get(message.from_user.id, 'ru')
-    await message.answer(TEXTS[lang]['cancel_success'], reply_markup=ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text='🚀 Заказать/Buyurtma berish')]], resize_keyboard=True))
-
+# --- ПРОЦЕСС ЗАКАЗА ЧЕРЕЗ MINI APP ---
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
     kb = [[KeyboardButton(text='🚀 Заказать/Buyurtma berish')]]
     if message.from_user.id == ADMIN_ID: kb.append([KeyboardButton(text='/admin')])
-    await message.answer("👋 Obor bot", reply_markup=ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
+    await message.answer("👋 Привет! Я бот доставки Obor.",
+                         reply_markup=ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
 
-
-# --- 3. ПРОЦЕСС ЗАКАЗА ---
 
 @router.message(F.text.contains('Заказать'))
 async def start_order(message: Message, state: FSMContext):
     await state.update_data(items=[])
     kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='🇷🇺 Русский'), KeyboardButton(text='🇺🇿 Oʻzbekcha')]],
                              resize_keyboard=True)
-    await message.answer("🌐 Выберите язык:", reply_markup=kb)
+    await message.answer("🌐 Выберите язык / Tilni tanlang:", reply_markup=kb)
     await state.set_state(OrderForm.ChoosingLanguage)
 
 
 @router.message(OrderForm.ChoosingLanguage, F.text)
 async def language_selected(message: Message, state: FSMContext):
-    if 'Русский' in message.text:
-        lang = 'ru'
-    elif 'Oʻzbekcha' in message.text:
-        lang = 'uz'
-    else:
-        return
+    lang = 'ru' if 'Русский' in message.text else 'uz'
     LANGUAGE[message.from_user.id] = lang
-    await ask_type(message, state, lang)
+
+    # Кнопка для открытия Mini App
+    kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text=TEXTS[lang]['open_app'], web_app=WebAppInfo(url=WEB_APP_URL))],
+        [KeyboardButton(text=TEXTS[lang]['btn_cancel'])]
+    ], resize_keyboard=True)
+
+    await message.answer(TEXTS[lang]['ask_app'], reply_markup=kb)
+
+
+@router.message(F.web_app_data)
+async def handle_webapp_data(message: Message, state: FSMContext):
+    lang = LANGUAGE.get(message.from_user.id, 'ru')
+    try:
+        data = json.loads(message.web_app_data.data)
+        name = data.get('name')
+        phone = data.get('phone')
+
+        await state.update_data(name=name, phone=phone)
+        await message.answer(f"✅ {name}, данные приняты!")
+        await ask_type(message, state, lang)
+    except Exception as e:
+        await message.answer("❌ Ошибка получения данных из формы.")
 
 
 async def ask_type(message: Message, state: FSMContext, lang: str):
@@ -231,8 +222,6 @@ async def what_received(message: Message, state: FSMContext):
 @router.message(OrderForm.WaitingForWeight, F.text)
 async def weight_received(message: Message, state: FSMContext):
     lang = LANGUAGE.get(message.from_user.id, 'ru')
-    if not message.text: return await message.answer(TEXTS[lang]['err_text'])
-
     data = await state.get_data()
     items = data.get('items', [])
     items.append(
@@ -253,29 +242,6 @@ async def handle_dropoff(message: Message, state: FSMContext):
     lang = LANGUAGE.get(message.from_user.id, 'ru')
     if not message.location: return await message.answer(TEXTS[lang]['err_loc'])
     await state.update_data(dropoff=[message.location.latitude, message.location.longitude])
-    await message.answer(TEXTS[lang]['ask_name'], reply_markup=get_cancel_kb(lang))
-    await state.set_state(OrderForm.WaitingForName)
-
-
-@router.message(OrderForm.WaitingForName, F.text)
-async def name_received(message: Message, state: FSMContext):
-    lang = LANGUAGE.get(message.from_user.id, 'ru')
-    if not re.match(r'^[A-Za-zА-Яа-яЁёЎўҚқҒғҲҳ\s]{2,20}$', str(message.text)):
-        return await message.answer(TEXTS[lang]['err_name'])
-    await state.update_data(name=message.text)
-    kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='📲 Номер', request_contact=True)],
-                                       [KeyboardButton(text=TEXTS[lang]['btn_cancel'])]], resize_keyboard=True)
-    await message.answer(TEXTS[lang]['ask_phone'], reply_markup=kb)
-    await state.set_state(OrderForm.WaitingForPhone)
-
-
-@router.message(OrderForm.WaitingForPhone)
-async def phone_received(message: Message, state: FSMContext):
-    lang = LANGUAGE.get(message.from_user.id, 'ru')
-    phone = message.contact.phone_number if message.contact else message.text
-    if not (7 <= len(re.sub(r'\D', '', str(phone))) <= 15):
-        return await message.answer(TEXTS[lang]['err_phone'])
-    await state.update_data(phone=phone)
     await show_summary(message, state, lang)
 
 
@@ -300,21 +266,24 @@ async def process_confirm(message: Message, state: FSMContext):
         data = await state.get_data()
         order_id = str(int(datetime.now().timestamp()) % 1000)
         items_str = "".join([f"[{i['ot']}] {i['ss']}->{i['sw']} ({i['w']}); " for i in data['items']])
+
         append_order(
             {"order_id": order_id, "time": datetime.now(TIMEZONE).strftime("%d.%m %H:%M"), "first_name": data['name'],
              "phone": data['phone'], "items": items_str, "status": "🆕 НОВЫЙ"})
+
         await message.answer(TEXTS[lang]['confirm'].format(id=order_id), reply_markup=ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text='🚀 Заказать/Buyurtma berish')]], resize_keyboard=True))
+
         coords = data.get('dropoff', [0, 0])
         msg = f"🚚 <b>ЗАКАЗ #{order_id}</b>\n\n{items_str}\n\n👤 {data['name']}\n📞 {data['phone']}\n📍 <a href='http://maps.google.com/maps?q={coords[0]},{coords[1]}'>ЛОКАЦИЯ</a>"
+
         await bot.send_message(COURIER_ID, msg, reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Взять", callback_data=f"accept_{order_id}_{message.from_user.id}")]]),
                                disable_web_page_preview=True)
         await state.clear()
 
 
-# --- 4. КУРЬЕР И ЗАПУСК ---
-
+# --- КУРЬЕРСКИЕ КОЛБЭКИ (без изменений) ---
 @router.callback_query(F.data.startswith("accept_"))
 async def courier_accept(callback: CallbackQuery):
     _, order_id, user_id = callback.data.split("_")
@@ -345,13 +314,17 @@ def get_cancel_kb(lang):
     return ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text=TEXTS[lang]['btn_cancel'])]], resize_keyboard=True)
 
 
+@router.message(F.text.in_(['❌ Отмена заказа', '❌ Bekor qilish', '🏠 Выйти']))
+async def cancel_handler(message: Message, state: FSMContext):
+    await state.clear()
+    lang = LANGUAGE.get(message.from_user.id, 'ru')
+    await message.answer(TEXTS[lang]['cancel_success'], reply_markup=ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text='🚀 Заказать/Buyurtma berish')]], resize_keyboard=True))
+
+
 async def main():
     dp.include_router(router)
     print("✅ Бот запущен...")
-    try:
-        await bot.send_message(ADMIN_ID, "🚀 <b>Бот работает!</b>")
-    except:
-        pass
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
