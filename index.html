@@ -3,23 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Obor Pro Delivery</title>
+    <title>Obor Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --primary: #2ecc71; --bg: #0f172a; --card: rgba(255, 255, 255, 0.08); --text: #f8fafc; }
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: #0f172a; color: var(--text);
-            margin: 0; padding: 15px; min-height: 100vh; overflow-x: hidden;
+            margin: 0; padding: 15px; min-height: 100vh; overflow: hidden;
         }
         .step { display: none; animation: slide 0.3s ease-out forwards; }
         .step.active { display: block; }
+
+        /* Анимация улетающего самолетика */
+        .fly-away { animation: flyOut 0.8s ease-in forwards !important; }
+        @keyframes flyOut {
+            0% { transform: scale(1) translateY(0); opacity: 1; }
+            30% { transform: scale(0.8) translateX(20px); opacity: 0.8; }
+            100% { transform: scale(0.2) translateY(-1000px) translateX(200px); opacity: 0; }
+        }
+
         @keyframes slide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .card {
             background: var(--card); backdrop-filter: blur(12px);
             border: 1px solid rgba(255,255,255,0.1);
             padding: 20px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            position: relative;
         }
         h2 { font-size: 22px; color: var(--primary); margin: 0 0 20px 0; text-align: center; }
 
@@ -30,7 +40,7 @@
             cursor: pointer; transition: 0.2s;
         }
         button.sec { background: #334155; color: white; }
-        button.active-choice { outline: 3px solid var(--primary); background: var(--primary); color: #000; }
+        button.active-choice { background: var(--primary); color: #000; }
         button.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
 
         .input-group { margin-bottom: 15px; }
@@ -39,16 +49,19 @@
             width: 100%; padding: 14px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1);
             background: rgba(0,0,0,0.3); color: white; font-size: 16px; outline: none; box-sizing: border-box;
         }
-        input:focus { border-color: var(--primary); }
 
         .summary { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.6; margin-bottom: 15px; border: 1px dashed var(--primary); }
-        .success { color: var(--primary); font-size: 12px; margin-top: 5px; display: block; font-weight: bold; }
+
+        /* Финальный персонаж */
+        #success-screen { display: none; text-align: center; padding: 20px; animation: slide 0.5s ease-out; }
+        .character { font-size: 80px; margin-bottom: 10px; display: block; }
+        .sign { background: white; color: black; padding: 10px; border-radius: 10px; display: inline-block; font-weight: bold; transform: rotate(-3deg); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
-    <div class="card">
+    <div class="card" id="main-card">
         <div id="step1" class="step active">
-            <h2>🌐 Выберите язык / Tilni tanlang</h2>
+            <h2>🌐 Язык / Til</h2>
             <div class="btn-grid">
                 <button id="l_ru" onclick="setLang('ru')">Русский</button>
                 <button id="l_uz" onclick="setLang('uz')">O'zbekcha</button>
@@ -62,38 +75,40 @@
                 <input type="text" id="what" oninput="check2()">
             </div>
             <div class="input-group">
-                <label id="lbl_from">Откуда забрать?</label>
+                <label id="lbl_from">Откуда?</label>
                 <input type="text" id="from" oninput="check2()">
             </div>
             <div class="input-group">
-                <label id="lbl_weight">Примерный вес</label>
+                <label id="lbl_weight">Вес</label>
                 <input type="text" id="weight" oninput="check2()">
             </div>
             <button id="btn2" class="disabled" onclick="next(3)">Далее</button>
-            <button class="sec" style="margin-top:10px" onclick="next(1)">Назад</button>
         </div>
 
         <div id="step3" class="step">
             <h2 id="h2_3">Доставка</h2>
             <div class="input-group">
-                <label id="lbl_name">Ваше имя</label>
+                <label id="lbl_name">Имя</label>
                 <input type="text" id="name" oninput="check3()">
             </div>
             <div class="input-group">
                 <label id="lbl_phone">Телефон</label>
                 <input type="tel" id="phone" value="+998 ">
             </div>
-            <button id="btn_loc" class="sec" onclick="getLoc()">📍 Отправить локацию</button>
-            <span id="loc_ok" style="display:none" class="success">✅ Локация получена</span>
+            <button id="btn_loc" class="sec" onclick="getLoc()">📍 Локация</button>
             <button id="btn3" class="disabled" onclick="prepareFinal()" style="margin-top:10px">Проверить</button>
-            <button class="sec" style="margin-top:10px" onclick="next(2)">Назад</button>
         </div>
 
         <div id="step4" class="step">
-            <h2 id="h2_4">Подтверждение</h2>
+            <h2 id="h2_4">Итог</h2>
             <div id="summary" class="summary"></div>
-            <button onclick="sendOrder()">✅ Оформить заказ</button>
-            <button class="sec" style="margin-top:10px" onclick="tg.close()">❌ Отмена</button>
+            <button id="final-btn" onclick="sendOrder()">🚀 Оформить заказ</button>
+            <button class="sec" style="margin-top:10px" onclick="next(3)">Назад</button>
+        </div>
+
+        <div id="success-screen">
+            <span class="character">😊</span>
+            <div class="sign" id="final_msg">Приходите еще!</div>
         </div>
     </div>
 
@@ -102,33 +117,26 @@
         let order = { lat: 0, lon: 0 };
         tg.expand();
 
-        // --- МАСКА ТЕЛЕФОНА (НЕЛЬЗЯ СТЕРЕТЬ +998) ---
+        // Исправленная маска телефона
         const phoneInput = document.getElementById('phone');
-        function formatPhone(val) {
-            let d = val.replace(/\D/g, '');
-            if (!d.startsWith('998')) d = '998' + d;
-            if (d.length < 3) d = '998';
-            let res = '+998';
-            if (d.length > 3) res += ' ' + d.substring(3, 5);
-            if (d.length > 5) res += ' ' + d.substring(5, 8);
-            if (d.length > 8) res += ' ' + d.substring(8, 10);
-            if (d.length > 10) res += ' ' + d.substring(10, 12);
-            return res;
-        }
         phoneInput.addEventListener('input', (e) => {
-            let start = e.target.selectionStart;
-            e.target.value = formatPhone(e.target.value);
-            if (start < 5) start = 5;
-            e.target.setSelectionRange(start, start);
+            let val = e.target.value.replace(/\D/g, '');
+            if (!val.startsWith('998')) val = '998' + val;
+            let formatted = '+998';
+            if (val.length > 3) formatted += ' ' + val.substring(3, 5);
+            if (val.length > 5) formatted += ' ' + val.substring(5, 8);
+            if (val.length > 8) formatted += ' ' + val.substring(8, 10);
+            if (val.length > 10) formatted += ' ' + val.substring(10, 12);
+            e.target.value = formatted;
             check3();
         });
         phoneInput.addEventListener('keydown', (e) => {
-            if (e.target.selectionStart <= 5 && (e.key === 'Backspace' || e.key === 'Delete')) e.preventDefault();
+            if (e.target.selectionStart < 5 && (e.key === 'Backspace' || e.key === 'Delete')) e.preventDefault();
         });
 
         const langData = {
-            ru: { h2: "Заказ", what: "Что везем?", from: "Откуда забрать?", weight: "Вес", ex1: "Пицца", ex2: "Корзинка", ex3: "2 кг", h3: "Доставка", name: "Имя", loc: "📍 Отправить локацию", check: "Проверить", btn2: "Далее", h4: "Подтверждение" },
-            uz: { h2: "Buyurtma", what: "Nima?", from: "Qayerdan?", weight: "Vazni", ex1: "Pitsa", ex2: "Korzinka", ex3: "2 kg", h3: "Yetkazib berish", name: "Ismingiz", loc: "📍 Lokatsiyani yuborish", check: "Tekshirish", btn2: "Keyingi", h4: "Tasdiqlash" }
+            ru: { h2: "Заказ", what: "Что везем?", from: "Откуда?", weight: "Вес", h3: "Доставка", name: "Имя", check: "Проверить", final: "🚀 Оформить", sign: "Приходите еще!" },
+            uz: { h2: "Buyurtma", what: "Nima?", from: "Qayerdan?", weight: "Vazni", h3: "Yetkazib berish", name: "Ism", check: "Tekshirish", final: "🚀 Buyurtma berish", sign: "Yana keling!" }
         };
 
         function setLang(l) {
@@ -136,22 +144,14 @@
             const t = langData[l];
             document.getElementById('h2_2').innerText = t.h2;
             document.getElementById('lbl_what').innerText = t.what;
-            document.getElementById('what').placeholder = t.ex1;
             document.getElementById('lbl_from').innerText = t.from;
-            document.getElementById('from').placeholder = t.ex2;
             document.getElementById('lbl_weight').innerText = t.weight;
-            document.getElementById('weight').placeholder = t.ex3;
             document.getElementById('h2_3').innerText = t.h3;
             document.getElementById('lbl_name').innerText = t.name;
-            document.getElementById('btn_loc').innerText = t.loc;
             document.getElementById('btn3').innerText = t.check;
-            document.getElementById('btn2').innerText = t.btn2;
-            document.getElementById('h2_4').innerText = t.h4;
-
-            document.getElementById('l_ru').className = l === 'ru' ? 'active-choice' : 'sec';
-            document.getElementById('l_uz').className = l === 'uz' ? 'active-choice' : 'sec';
-
-            setTimeout(() => next(2), 400);
+            document.getElementById('final-btn').innerText = t.final;
+            document.getElementById('final_msg').innerText = t.sign;
+            next(2);
         }
 
         function next(s) {
@@ -160,12 +160,12 @@
         }
 
         function check2() {
-            const ok = document.getElementById('what').value.length > 1 && document.getElementById('from').value.length > 1;
+            const ok = document.getElementById('what').value && document.getElementById('from').value;
             document.getElementById('btn2').classList.toggle('disabled', !ok);
         }
 
         function check3() {
-            const ok = document.getElementById('name').value.length > 1 && phoneInput.value.length >= 17 && order.lat !== 0;
+            const ok = document.getElementById('name').value && phoneInput.value.length >= 17 && order.lat !== 0;
             document.getElementById('btn3').classList.toggle('disabled', !ok);
         }
 
@@ -173,10 +173,9 @@
             navigator.geolocation.getCurrentPosition(pos => {
                 order.lat = pos.coords.latitude;
                 order.lon = pos.coords.longitude;
-                document.getElementById('loc_ok').style.display = 'block';
-                document.getElementById('btn_loc').style.display = 'none';
+                document.getElementById('btn_loc').innerText = "✅ OK";
                 check3();
-            }, () => alert("Включите GPS!"));
+            }, () => alert("GPS?"));
         }
 
         function prepareFinal() {
@@ -185,18 +184,26 @@
             order.weight = document.getElementById('weight').value;
             order.name = document.getElementById('name').value;
             order.phone = phoneInput.value;
-
-            document.getElementById('summary').innerHTML = `
-                <b>📦 Предмет:</b> ${order.what}<br>
-                <b>📍 Откуда:</b> ${order.from}<br>
-                <b>⚖️ Вес:</b> ${order.weight}<br><br>
-                <b>👤 Имя:</b> ${order.name}<br>
-                <b>📞 Тел:</b> ${order.phone}
-            `;
+            document.getElementById('summary').innerHTML = `📦 ${order.what}<br>🛒 ${order.from}<br>👤 ${order.name}<br>📞 ${order.phone}`;
             next(4);
         }
 
-        function sendOrder() { tg.sendData(JSON.stringify(order)); }
+        function sendOrder() {
+            // Запуск анимации самолетика
+            const card = document.getElementById('main-card');
+            card.classList.add('fly-away');
+
+            setTimeout(() => {
+                tg.sendData(JSON.stringify(order));
+                // Скрываем все шаги и показываем экран успеха
+                document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
+                card.classList.remove('fly-away');
+                document.getElementById('success-screen').style.display = 'block';
+
+                // Закрываем приложение через 2 секунды
+                setTimeout(() => tg.close(), 2500);
+            }, 800);
+        }
     </script>
 </body>
 </html>
