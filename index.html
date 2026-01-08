@@ -14,16 +14,18 @@
             transition: background 0.5s ease;
         }
         body.dark-mode { background: #000 !important; }
-        .card { background: var(--card); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); padding: 20px; border-radius: 24px; }
+        .card { background: var(--card); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); padding: 20px; border-radius: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
         .step { display: none; }
         .step.active { display: block; animation: slide 0.3s ease-out; }
         @keyframes slide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         h2 { font-size: 22px; color: var(--primary); margin: 0 0 20px 0; text-align: center; }
-        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; }
+        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; outline: none; }
+        input:focus { border-color: var(--primary); }
         .btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        button { width: 100%; padding: 16px; border-radius: 14px; border: none; background: var(--primary); color: #000; font-size: 16px; font-weight: bold; cursor: pointer; }
+        button { width: 100%; padding: 16px; border-radius: 14px; border: none; background: var(--primary); color: #000; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
         button.sec { background: #334155; color: white; }
-        button.disabled { opacity: 0.3; pointer-events: none; }
+        button.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
         .summary { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.6; border: 1px dashed var(--primary); margin-bottom: 15px; }
 
         /* АНИМАЦИЯ СВЕЧЕЙ */
@@ -42,7 +44,7 @@
         @keyframes uff { 0%,40%,100% {width:0; height:0} 50%,54% {width:15px; height:15px} }
         @keyframes dance-fire { 0%,55%,100% {display:block; background:#FFC107} 59%,89% {display:none; opacity:0} }
         @keyframes shake-left { 0%,59%,100% {transform:translateX(0)} 62% {transform:translateX(-3px)} 65% {transform:translateX(3px)} 75% {transform:scale(1.1,0.9)} 91% {background:#F44336} }
-        .success-msg { color: #fff; text-align: center; margin-top: 30px; font-weight: bold; }
+        .success-msg { color: #fff; text-align: center; margin-top: 30px; font-weight: bold; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -67,7 +69,7 @@
         <div id="step3" class="step">
             <h2 id="h2_3">Доставка</h2>
             <input type="text" id="name" placeholder="Имя" oninput="check3()">
-            <input type="tel" id="phone" value="+998 ">
+            <input type="tel" id="phone" value="+998 " oninput="check3()">
             <button id="btn_loc" class="sec" onclick="getLoc()">📍 Локация</button>
             <div class="btn-group">
                 <button class="sec" id="back3" onclick="next(2)">Назад</button>
@@ -127,22 +129,32 @@
         }
 
         function check2() {
-            const ok = document.getElementById('what').value.length > 2 && document.getElementById('from').value.length > 2;
+            const ok = document.getElementById('what').value.trim().length > 1 &&
+                       document.getElementById('from').value.trim().length > 1;
             document.getElementById('btn2').classList.toggle('disabled', !ok);
         }
 
         function check3() {
-            const ok = document.getElementById('name').value.length > 1 && document.getElementById('phone').value.length >= 17 && order.lat !== 0;
-            document.getElementById('btn3').classList.toggle('disabled', !ok);
+            const n = document.getElementById('name').value.trim().length >= 2;
+            const p = document.getElementById('phone').value.trim().length >= 13; // Минимум цифр
+            const l = order.lat !== 0;
+
+            // Если всё ок, кнопка становится активной
+            document.getElementById('btn3').classList.toggle('disabled', !(n && p && l));
         }
 
         function getLoc() {
+            document.getElementById('btn_loc').innerText = "⌛...";
             navigator.geolocation.getCurrentPosition(pos => {
                 order.lat = pos.coords.latitude;
                 order.lon = pos.coords.longitude;
                 document.getElementById('btn_loc').innerText = "✅ OK";
+                document.getElementById('btn_loc').style.background = "#27ae60";
                 check3();
-            }, () => alert("Разрешите доступ к GPS"));
+            }, (err) => {
+                alert("GPS Error: " + err.message);
+                document.getElementById('btn_loc').innerText = "📍 Retry";
+            }, {enableHighAccuracy: true});
         }
 
         function prepareFinal() {
@@ -172,9 +184,19 @@
             }, 5000);
         }
 
+        // Умная маска телефона
         document.getElementById('phone').addEventListener('input', (e) => {
-            if (!e.target.value.startsWith('+998 ')) e.target.value = '+998 ';
-            if (e.target.value.length > 17) e.target.value = e.target.value.substring(0, 17);
+            let val = e.target.value.replace(/\D/g, ''); // Только цифры
+            if (!val.startsWith('998')) val = '998' + val;
+            if (val.length > 12) val = val.substring(0, 12);
+
+            // Форматируем: +998 90 123 45 67
+            let res = '+';
+            for (let i = 0; i < val.length; i++) {
+                if (i === 3 || i === 5 || i === 8 || i === 10) res += ' ';
+                res += val[i];
+            }
+            e.target.value = res;
             check3();
         });
     </script>

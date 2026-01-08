@@ -7,14 +7,14 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, WebAppIn
     InlineKeyboardButton, CallbackQuery
 from dotenv import load_dotenv
 
-# Импортируйте ваши функции для Google Sheets
-# from google_sheets import append_order, update_order_status
-
+# Загрузка переменных окружения
 load_dotenv()
 bot = Bot(token=os.getenv('BOT_TOKEN'))
 dp = Dispatcher()
 
+# ID курьера (возьмите из @userinfobot)
 COURIER_ID = int(os.getenv('COURIER_ID', 0))
+# Ссылка на ваш GitHub Pages
 WEB_APP_URL = "https://kamronking.github.io/obor-bot/"
 
 @dp.message(F.text == "/start")
@@ -22,31 +22,38 @@ async def start(message: Message):
     kb = ReplyKeyboardMarkup(keyboard=[
         [KeyboardButton(text="🚀 Заказать / Buyurtma", web_app=WebAppInfo(url=WEB_APP_URL))]
     ], resize_keyboard=True)
-    await message.answer("👋 <b>Obor Delivery</b>\n\nНажмите кнопку для заказа:\nBuyurtma berish uchun tugmani bosing:",
-                         reply_markup=kb, parse_mode="HTML")
+    await message.answer(
+        "👋 <b>Obor Delivery</b>\n\nНажмите кнопку для заказа:\nBuyurtma berish uchun tugmani bosing:",
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
 
 @dp.message(F.web_app_data)
 async def web_app_data_handler(message: Message):
     try:
         data = json.loads(message.web_app_data.data)
-        oid = str(int(datetime.now().timestamp()) % 1000)
+        oid = str(int(datetime.now().timestamp()) % 1000) # Короткий ID заказа
 
         is_uz = data.get('lang') == 'uz'
-        confirm_msg = f"✅ <b>Заказ №{oid} оформлен!</b>\nСкоро курьер свяжется с вами." if not is_uz else f"✅ <b>Buyurtma №{oid} qabul qilindi!</b>\nKuryer siz bilan bog'lanadi."
+        confirm_msg = (f"✅ <b>Заказ №{oid} оформлен!</b>\nСкоро курьер свяжется с вами."
+                       if not is_uz else
+                       f"✅ <b>Buyurtma №{oid} qabul qilindi!</b>\nKuryer siz bilan bog'lanadi.")
 
-        details = f"📦 {data['what']} ({data.get('weight', '?')} кг)\n📍 Откуда: {data['from']}\n👤 {data['name']}\n📞 {data['phone']}"
+        details = (f"📦 {data['what']} ({data.get('weight', '?')} кг)\n"
+                   f"📍 Откуда: {data['from']}\n"
+                   f"👤 {data['name']}\n"
+                   f"📞 {data['phone']}")
 
-        # Исправленная ссылка на Google Maps
+        # Ссылка на карту
         if data.get('lat') and data.get('lat') != 0:
             loc_url = f"https://www.google.com/maps?q={data['lat']},{data['lon']}"
             loc_text = f"📍 <a href='{loc_url}'>ЛОКАЦИЯ НА КАРТЕ</a>"
         else:
             loc_text = "📍 Локация не указана"
 
-        # Ответ пользователю
         await message.answer(confirm_msg, parse_mode="HTML")
 
-        # Отправка курьеру
+        # Кнопка для курьера
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🚕 Принять заказ", callback_data=f"acc_{oid}_{message.from_user.id}")]
         ])
