@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Obor Pro</title>
+    <title>Obor Pro Delivery</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --primary: #2ecc71; --bg: #0f172a; --card: rgba(255, 255, 255, 0.08); --text: #f8fafc; }
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: #0f172a; color: var(--text);
-            margin: 0; padding: 15px; min-height: 100vh;
+            margin: 0; padding: 15px; min-height: 100vh; overflow-x: hidden;
         }
         .step { display: none; animation: slide 0.3s ease-out forwards; }
         .step.active { display: block; }
@@ -41,14 +41,14 @@
         }
         input:focus { border-color: var(--primary); }
 
-        .summary { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; margin-bottom: 15px; }
-        .success { color: var(--primary); font-size: 12px; margin-top: 5px; display: block; }
+        .summary { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.6; margin-bottom: 15px; border: 1px dashed var(--primary); }
+        .success { color: var(--primary); font-size: 12px; margin-top: 5px; display: block; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="card">
         <div id="step1" class="step active">
-            <h2>🌐 Til / Язык</h2>
+            <h2>🌐 Выберите язык / Tilni tanlang</h2>
             <div class="btn-grid">
                 <button id="l_ru" onclick="setLang('ru')">Русский</button>
                 <button id="l_uz" onclick="setLang('uz')">O'zbekcha</button>
@@ -62,36 +62,38 @@
                 <input type="text" id="what" oninput="check2()">
             </div>
             <div class="input-group">
-                <label id="lbl_from">Откуда?</label>
+                <label id="lbl_from">Откуда забрать?</label>
                 <input type="text" id="from" oninput="check2()">
             </div>
             <div class="input-group">
-                <label id="lbl_weight">Вес</label>
+                <label id="lbl_weight">Примерный вес</label>
                 <input type="text" id="weight" oninput="check2()">
             </div>
-            <button id="btn2" class="disabled" onclick="next(3)">Keyingi / Далее</button>
+            <button id="btn2" class="disabled" onclick="next(3)">Далее</button>
+            <button class="sec" style="margin-top:10px" onclick="next(1)">Назад</button>
         </div>
 
         <div id="step3" class="step">
             <h2 id="h2_3">Доставка</h2>
             <div class="input-group">
-                <label id="lbl_name">Имя</label>
+                <label id="lbl_name">Ваше имя</label>
                 <input type="text" id="name" oninput="check3()">
             </div>
             <div class="input-group">
                 <label id="lbl_phone">Телефон</label>
-                <input type="tel" id="phone" value="+998">
+                <input type="tel" id="phone" value="+998 ">
             </div>
             <button id="btn_loc" class="sec" onclick="getLoc()">📍 Отправить локацию</button>
             <span id="loc_ok" style="display:none" class="success">✅ Локация получена</span>
-            <button id="btn3" class="disabled" onclick="prepareFinal()" style="margin-top:10px">Tekshirish / Проверить</button>
+            <button id="btn3" class="disabled" onclick="prepareFinal()" style="margin-top:10px">Проверить</button>
+            <button class="sec" style="margin-top:10px" onclick="next(2)">Назад</button>
         </div>
 
         <div id="step4" class="step">
             <h2 id="h2_4">Подтверждение</h2>
             <div id="summary" class="summary"></div>
-            <button onclick="sendOrder()">✅ Оформить</button>
-            <button class="sec" onclick="tg.close()">❌ Отмена</button>
+            <button onclick="sendOrder()">✅ Оформить заказ</button>
+            <button class="sec" style="margin-top:10px" onclick="tg.close()">❌ Отмена</button>
         </div>
     </div>
 
@@ -100,19 +102,33 @@
         let order = { lat: 0, lon: 0 };
         tg.expand();
 
-        // Логика телефона: нельзя стереть +998
+        // --- МАСКА ТЕЛЕФОНА (НЕЛЬЗЯ СТЕРЕТЬ +998) ---
         const phoneInput = document.getElementById('phone');
-        phoneInput.addEventListener('keydown', (e) => {
-            if (e.target.selectionStart < 4 && (e.key === 'Backspace' || e.key === 'Delete')) e.preventDefault();
-        });
+        function formatPhone(val) {
+            let d = val.replace(/\D/g, '');
+            if (!d.startsWith('998')) d = '998' + d;
+            if (d.length < 3) d = '998';
+            let res = '+998';
+            if (d.length > 3) res += ' ' + d.substring(3, 5);
+            if (d.length > 5) res += ' ' + d.substring(5, 8);
+            if (d.length > 8) res += ' ' + d.substring(8, 10);
+            if (d.length > 10) res += ' ' + d.substring(10, 12);
+            return res;
+        }
         phoneInput.addEventListener('input', (e) => {
-            if (!e.target.value.startsWith('+998')) e.target.value = '+998' + e.target.value.replace(/^\+998/, '');
+            let start = e.target.selectionStart;
+            e.target.value = formatPhone(e.target.value);
+            if (start < 5) start = 5;
+            e.target.setSelectionRange(start, start);
             check3();
+        });
+        phoneInput.addEventListener('keydown', (e) => {
+            if (e.target.selectionStart <= 5 && (e.key === 'Backspace' || e.key === 'Delete')) e.preventDefault();
         });
 
         const langData = {
-            ru: { h2: "Заказ", what: "Что привезти?", from: "Откуда?", weight: "Вес", ex1: "Пицца", ex2: "Корзинка", ex3: "2 кг", h3: "Доставка", name: "Ваше имя", loc: "📍 Отправить локацию", check: "Проверить" },
-            uz: { h2: "Buyurtma", what: "Nima olib kelish kerak?", from: "Qayerdan?", weight: "Vazni", ex1: "Pitsa", ex2: "Korzinka", ex3: "2 kg", h3: "Yetkazib berish", name: "Ismingiz", loc: "📍 Lokatsiyani yuborish", check: "Tekshirish" }
+            ru: { h2: "Заказ", what: "Что везем?", from: "Откуда забрать?", weight: "Вес", ex1: "Пицца", ex2: "Корзинка", ex3: "2 кг", h3: "Доставка", name: "Имя", loc: "📍 Отправить локацию", check: "Проверить", btn2: "Далее", h4: "Подтверждение" },
+            uz: { h2: "Buyurtma", what: "Nima?", from: "Qayerdan?", weight: "Vazni", ex1: "Pitsa", ex2: "Korzinka", ex3: "2 kg", h3: "Yetkazib berish", name: "Ismingiz", loc: "📍 Lokatsiyani yuborish", check: "Tekshirish", btn2: "Keyingi", h4: "Tasdiqlash" }
         };
 
         function setLang(l) {
@@ -129,8 +145,9 @@
             document.getElementById('lbl_name').innerText = t.name;
             document.getElementById('btn_loc').innerText = t.loc;
             document.getElementById('btn3').innerText = t.check;
+            document.getElementById('btn2').innerText = t.btn2;
+            document.getElementById('h2_4').innerText = t.h4;
 
-            // Подсветка выбора
             document.getElementById('l_ru').className = l === 'ru' ? 'active-choice' : 'sec';
             document.getElementById('l_uz').className = l === 'uz' ? 'active-choice' : 'sec';
 
@@ -148,7 +165,7 @@
         }
 
         function check3() {
-            const ok = document.getElementById('name').value.length > 1 && phoneInput.value.length > 11 && order.lat !== 0;
+            const ok = document.getElementById('name').value.length > 1 && phoneInput.value.length >= 17 && order.lat !== 0;
             document.getElementById('btn3').classList.toggle('disabled', !ok);
         }
 
@@ -159,7 +176,7 @@
                 document.getElementById('loc_ok').style.display = 'block';
                 document.getElementById('btn_loc').style.display = 'none';
                 check3();
-            }, () => alert("GPS error!"));
+            }, () => alert("Включите GPS!"));
         }
 
         function prepareFinal() {
@@ -169,7 +186,13 @@
             order.name = document.getElementById('name').value;
             order.phone = phoneInput.value;
 
-            document.getElementById('summary').innerHTML = `📦 ${order.what}<br>🛒 ${order.from}<br>⚖️ ${order.weight}<br>👤 ${order.name}<br>📞 ${order.phone}`;
+            document.getElementById('summary').innerHTML = `
+                <b>📦 Предмет:</b> ${order.what}<br>
+                <b>📍 Откуда:</b> ${order.from}<br>
+                <b>⚖️ Вес:</b> ${order.weight}<br><br>
+                <b>👤 Имя:</b> ${order.name}<br>
+                <b>📞 Тел:</b> ${order.phone}
+            `;
             next(4);
         }
 
