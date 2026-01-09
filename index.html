@@ -6,24 +6,114 @@
     <title>Obor Delivery</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --primary: #2ecc71; --bg: #0f172a; --card: rgba(255, 255, 255, 0.1); --text: #f8fafc; }
-        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: var(--text); margin: 0; padding: 15px; min-height: 100vh; overflow-x: hidden; }
-        .card { background: var(--card); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); padding: 20px; border-radius: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        :root {
+            --primary: #2ecc71;
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center; /* Центровка по вертикали */
+            justify-content: center; /* Центровка по горизонтали */
+            color: var(--text);
+            overflow: hidden;
+            /* ДВИГАЮЩИЙСЯ ФОН */
+            background: linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #334155);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 350px; /* Ограничение ширины */
+            box-sizing: border-box;
+        }
+
         .step { display: none; }
-        .step.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        h2 { font-size: 22px; color: var(--primary); margin: 0 0 20px 0; text-align: center; }
-        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; outline: none; }
+        .step.active { display: block; animation: fadeIn 0.4s ease; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        h2 { font-size: 24px; color: var(--primary); margin: 0 0 20px 0; text-align: center; }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.3);
+            color: white;
+            font-size: 16px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
         input:focus { border-color: var(--primary); }
+
         .btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        button { width: 100%; padding: 16px; border-radius: 14px; border: none; background: var(--primary); color: #000; font-size: 16px; font-weight: bold; cursor: pointer; }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: none;
+            background: var(--primary);
+            color: #000;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:active { transform: scale(0.95); }
+
         button.sec { background: #334155; color: white; }
         button.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
-        .summary { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; font-size: 14px; border: 1px dashed var(--primary); margin-bottom: 15px; }
 
-        /* ЭКРАН УСПЕХА */
-        #success-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: #000; text-align: center; padding-top: 40%; }
-        .success-msg { color: #fff; font-size: 20px; font-weight: bold; margin-top: 20px; }
+        .summary {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 14px;
+            border: 1px dashed var(--primary);
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        #success-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 9999;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .success-msg { color: #fff; font-size: 22px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -60,10 +150,11 @@
             <h2 id="h2_4">Итог</h2>
             <div id="summary" class="summary"></div>
             <button id="final-btn" onclick="startSuccessAnim()">🚀 Заказать</button>
+            <button class="sec" style="margin-top:10px" onclick="next(3)">Назад</button>
         </div>
     </div>
 
-    <div id="success-screen">
+    <div id="success-screen" style="display: none;">
         <div class="success-msg" id="final_msg">Отправка...</div>
     </div>
 
@@ -87,7 +178,6 @@
             document.getElementById('btn2').innerText = t.next;
             document.getElementById('btn3').innerText = t.check;
             document.getElementById('final-btn').innerText = t.send;
-            document.querySelectorAll('.sec[id^="back"]').forEach(b => b.innerText = t.back);
             next(2);
         }
 
@@ -104,7 +194,7 @@
 
         function check3() {
             const n = document.getElementById('name').value.trim().length >= 2;
-            const p = document.getElementById('phone').value.trim().length >= 10;
+            const p = document.getElementById('phone').value.trim().length >= 12;
             const l = order.lat !== 0;
             document.getElementById('btn3').classList.toggle('disabled', !(n && p && l));
         }
@@ -128,23 +218,21 @@
             order.phone = document.getElementById('phone').value;
 
             document.getElementById('summary').innerHTML = `
-                📦 ${order.what} | 🛒 ${order.from}<br>
-                👤 ${order.name} | 📞 ${order.phone}
+                📦 <b>${order.what}</b><br>
+                🛒 <b>${order.from}</b><br>
+                👤 <b>${order.name}</b><br>
+                📞 <b>${order.phone}</b>
             `;
             next(4);
         }
 
         function startSuccessAnim() {
             document.getElementById('main-card').style.display = 'none';
-            document.getElementById('success-screen').style.display = 'block';
+            document.getElementById('success-screen').style.display = 'flex';
             document.getElementById('final_msg').innerText = translations[order.lang].done;
-
-            setTimeout(() => {
-                tg.sendData(JSON.stringify(order));
-            }, 1000); // 1 секунда анимации перед закрытием
+            setTimeout(() => { tg.sendData(JSON.stringify(order)); }, 1200);
         }
 
-        // Маска телефона
         document.getElementById('phone').addEventListener('input', (e) => {
             let val = e.target.value.replace(/\D/g, '');
             if (!val.startsWith('998')) val = '998' + val;
