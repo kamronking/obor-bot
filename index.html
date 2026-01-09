@@ -3,54 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Obor Pro</title>
+    <title>Obor Delivery</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --primary: #2ecc71; --bg: #0f172a; --card: rgba(255, 255, 255, 0.1); --text: #f8fafc; }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #0f172a; color: var(--text);
-            margin: 0; padding: 15px; min-height: 100vh; overflow: hidden;
-            transition: background 0.5s ease;
-        }
-        body.dark-mode { background: #000 !important; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: var(--text); margin: 0; padding: 15px; min-height: 100vh; overflow-x: hidden; }
         .card { background: var(--card); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); padding: 20px; border-radius: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
         .step { display: none; }
-        .step.active { display: block; animation: slide 0.3s ease-out; }
-        @keyframes slide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .step.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         h2 { font-size: 22px; color: var(--primary); margin: 0 0 20px 0; text-align: center; }
         input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; outline: none; }
         input:focus { border-color: var(--primary); }
         .btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        button { width: 100%; padding: 16px; border-radius: 14px; border: none; background: var(--primary); color: #000; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:active { transform: scale(0.98); }
+        button { width: 100%; padding: 16px; border-radius: 14px; border: none; background: var(--primary); color: #000; font-size: 16px; font-weight: bold; cursor: pointer; }
         button.sec { background: #334155; color: white; }
         button.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
-        .summary { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.6; border: 1px dashed var(--primary); margin-bottom: 15px; }
+        .summary { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; font-size: 14px; border: 1px dashed var(--primary); margin-bottom: 15px; }
 
-        /* АНИМАЦИЯ СВЕЧЕЙ */
-        #success-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: inherit; }
-        .wrapper { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(1.2); }
-        .floor { width: 250px; height: 5px; background: #673C63; }
-        .candles { position: relative; width: 250px; height: 150px; }
-        .candle1 { position: absolute; left: 140px; top: 50px; width: 35px; height: 100px; background: #fff; border: 3px solid #673C63; border-bottom: 0; animation: expand-body 3s infinite linear; }
-        .candle1__eyes { position: absolute; top: 20px; width: 100%; display: flex; justify-content: space-around; }
-        .candle1__eyes span { width: 5px; height: 5px; background: #673C63; border-radius: 50%; animation: blink-eyes 3s infinite linear; }
-        .candle1__mouth { position: absolute; top: 25px; left: 15px; width: 0px; height: 0px; background: #673C63; border-radius: 50%; animation: uff 3s infinite linear; }
-        .candle2 { position: absolute; left: 50px; top: 90px; width: 42px; height: 60px; background: #fff; border: 3px solid #673C63; border-bottom: 0; animation: shake-left 3s infinite linear; }
-        .candle2__fire { position: absolute; top: 70px; left: 70px; width: 16px; height: 20px; background: #FF9800; border-radius: 50%; animation: dance-fire 3s infinite linear; }
-        @keyframes blink-eyes { 0%,35%,40%,100% {opacity:1} 36%,39% {opacity:0} 50%,65% {transform:translateX(-5px)} }
-        @keyframes expand-body { 0%,40%,100% {transform:scale(1,1)} 45%,55% {transform:scale(1.1,1.1) translateY(-5px)} 60% {transform:scale(0.9,0.9)} }
-        @keyframes uff { 0%,40%,100% {width:0; height:0} 50%,54% {width:15px; height:15px} }
-        @keyframes dance-fire { 0%,55%,100% {display:block; background:#FFC107} 59%,89% {display:none; opacity:0} }
-        @keyframes shake-left { 0%,59%,100% {transform:translateX(0)} 62% {transform:translateX(-3px)} 65% {transform:translateX(3px)} 75% {transform:scale(1.1,0.9)} 91% {background:#F44336} }
-        .success-msg { color: #fff; text-align: center; margin-top: 30px; font-weight: bold; font-size: 18px; }
+        /* ЭКРАН УСПЕХА */
+        #success-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: #000; text-align: center; padding-top: 40%; }
+        .success-msg { color: #fff; font-size: 20px; font-weight: bold; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="card" id="main-card">
         <div id="step1" class="step active">
-            <h2>🌐 Til / Язык</h2>
+            <h2>Til / Язык</h2>
             <button onclick="setLang('ru')">Русский</button>
             <button style="margin-top:10px" onclick="setLang('uz')">O'zbekcha</button>
         </div>
@@ -80,18 +59,12 @@
         <div id="step4" class="step">
             <h2 id="h2_4">Итог</h2>
             <div id="summary" class="summary"></div>
-            <button id="final-btn" onclick="startSuccessAnim()">🚀 Оформить заказ</button>
-            <button class="sec" style="margin-top:10px" id="back4" onclick="next(3)">Назад</button>
+            <button id="final-btn" onclick="startSuccessAnim()">🚀 Заказать</button>
         </div>
     </div>
 
     <div id="success-screen">
-        <div class="wrapper">
-            <div class="candle2__fire"></div>
-            <div class="candles"><div class="candle1"><div class="candle1__eyes"><span></span><span></span></div><div class="candle1__mouth"></div></div><div class="candle2"></div></div>
-            <div class="floor"></div>
-            <div class="success-msg" id="final_msg">Заказ принят!</div>
-        </div>
+        <div class="success-msg" id="final_msg">Отправка...</div>
     </div>
 
     <script>
@@ -100,8 +73,8 @@
         tg.expand();
 
         const translations = {
-            ru: { h2: "Заказ", h3: "Доставка", h4: "Итог", what: "Что везем?", from: "Откуда?", weight: "Вес (кг)", name: "Имя", loc: "📍 Локация", back: "Назад", next: "Далее", check: "Проверить", done: "Заказ принят!", send: "🚀 Оформить заказ" },
-            uz: { h2: "Buyurtma", h3: "Yetkazib berish", h4: "Natija", what: "Nima olib kelamiz?", from: "Qayerdan?", weight: "Vazni (kg)", name: "Ismingiz", loc: "📍 Lokatsiya", back: "Orqaga", next: "Keyingisi", check: "Tekshirish", done: "Buyurtma qabul qilindi!", send: "🚀 Buyurtma berish" }
+            ru: { h2: "Заказ", h3: "Доставка", h4: "Итог", what: "Что?", from: "Откуда?", weight: "Вес", name: "Имя", loc: "📍 Локация", back: "Назад", next: "Далее", check: "Проверить", done: "Заказ принят!", send: "🚀 Заказать" },
+            uz: { h2: "Buyurtma", h3: "Yetkazib berish", h4: "Natija", what: "Nima?", from: "Qayerdan?", weight: "Vazni", name: "Ism", loc: "📍 Lokatsiya", back: "Orqaga", next: "Keyingi", check: "Tekshirish", done: "Qabul qilindi!", send: "🚀 Buyurtma" }
         };
 
         function setLang(l) {
@@ -110,16 +83,11 @@
             document.getElementById('h2_2').innerText = t.h2;
             document.getElementById('h2_3').innerText = t.h3;
             document.getElementById('h2_4').innerText = t.h4;
-            document.getElementById('what').placeholder = t.what;
-            document.getElementById('from').placeholder = t.from;
-            document.getElementById('weight').placeholder = t.weight;
-            document.getElementById('name').placeholder = t.name;
             document.getElementById('btn_loc').innerText = t.loc;
-            document.getElementById('final_msg').innerText = t.done;
-            document.getElementById('final-btn').innerText = t.send;
-            document.querySelectorAll('.sec[id^="back"]').forEach(b => b.innerText = t.back);
             document.getElementById('btn2').innerText = t.next;
             document.getElementById('btn3').innerText = t.check;
+            document.getElementById('final-btn').innerText = t.send;
+            document.querySelectorAll('.sec[id^="back"]').forEach(b => b.innerText = t.back);
             next(2);
         }
 
@@ -136,10 +104,8 @@
 
         function check3() {
             const n = document.getElementById('name').value.trim().length >= 2;
-            const p = document.getElementById('phone').value.trim().length >= 13; // Минимум цифр
+            const p = document.getElementById('phone').value.trim().length >= 10;
             const l = order.lat !== 0;
-
-            // Если всё ок, кнопка становится активной
             document.getElementById('btn3').classList.toggle('disabled', !(n && p && l));
         }
 
@@ -151,10 +117,7 @@
                 document.getElementById('btn_loc').innerText = "✅ OK";
                 document.getElementById('btn_loc').style.background = "#27ae60";
                 check3();
-            }, (err) => {
-                alert("GPS Error: " + err.message);
-                document.getElementById('btn_loc').innerText = "📍 Retry";
-            }, {enableHighAccuracy: true});
+            }, () => alert("Включите GPS!"));
         }
 
         function prepareFinal() {
@@ -164,13 +127,9 @@
             order.name = document.getElementById('name').value;
             order.phone = document.getElementById('phone').value;
 
-            const t = translations[order.lang];
             document.getElementById('summary').innerHTML = `
-                <b>📦 ${t.what}:</b> ${order.what}<br>
-                <b>🛒 ${t.from}:</b> ${order.from}<br>
-                <b>⚖️ ${t.weight}:</b> ${order.weight}<br>
-                <b>👤 ${t.name}:</b> ${order.name}<br>
-                <b>📞 Тел:</b> ${order.phone}
+                📦 ${order.what} | 🛒 ${order.from}<br>
+                👤 ${order.name} | 📞 ${order.phone}
             `;
             next(4);
         }
@@ -178,19 +137,18 @@
         function startSuccessAnim() {
             document.getElementById('main-card').style.display = 'none';
             document.getElementById('success-screen').style.display = 'block';
-            setTimeout(() => document.body.classList.add('dark-mode'), 1800);
+            document.getElementById('final_msg').innerText = translations[order.lang].done;
+
             setTimeout(() => {
                 tg.sendData(JSON.stringify(order));
-            }, 5000);
+            }, 1000); // 1 секунда анимации перед закрытием
         }
 
-        // Умная маска телефона
+        // Маска телефона
         document.getElementById('phone').addEventListener('input', (e) => {
-            let val = e.target.value.replace(/\D/g, ''); // Только цифры
+            let val = e.target.value.replace(/\D/g, '');
             if (!val.startsWith('998')) val = '998' + val;
             if (val.length > 12) val = val.substring(0, 12);
-
-            // Форматируем: +998 90 123 45 67
             let res = '+';
             for (let i = 0; i < val.length; i++) {
                 if (i === 3 || i === 5 || i === 8 || i === 10) res += ' ';
