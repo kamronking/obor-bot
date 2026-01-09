@@ -43,6 +43,14 @@
         button:active { transform: scale(0.95); }
         button.sec { background: #334155; color: white; }
         button.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
+
+        /* Плашка цены */
+        .price-tag {
+            background: var(--primary); color: #000; padding: 12px;
+            border-radius: 12px; text-align: center; font-weight: bold;
+            font-size: 18px; margin-bottom: 15px; display: none;
+        }
+
         .summary {
             background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px;
             font-size: 14px; border: 1px dashed var(--primary); margin-bottom: 15px; line-height: 1.6;
@@ -65,7 +73,8 @@
             <h2 id="h2_2">Заказ</h2>
             <input type="text" id="what" oninput="check2()">
             <input type="text" id="from" oninput="check2()">
-            <input type="text" id="weight" oninput="check2()">
+            <input type="number" id="weight" oninput="calculatePrice(); check2()">
+            <div id="price-display" class="price-tag"></div>
             <div class="btn-group">
                 <button class="sec back-btn" onclick="next(1)">Назад</button>
                 <button id="btn2" class="disabled next-btn" onclick="next(3)">Далее</button>
@@ -97,8 +106,12 @@
 
     <script>
         let tg = window.Telegram.WebApp;
-        let order = { lat: 0, lon: 0, lang: 'ru' };
+        let order = { lat: 0, lon: 0, lang: 'ru', price: 0 };
         tg.expand();
+
+        // ЦЕНОВАЯ ПОЛИТИКА
+        const BASE_PRICE = 15000; // База
+        const PRICE_PER_KG = 2000; // За кг
 
         const translations = {
             ru: {
@@ -106,41 +119,43 @@
                 what: "Что везем?", from: "Откуда (адрес)?", weight: "Вес (кг)",
                 name: "Ваше имя", loc: "📍 Локация", back: "Назад",
                 next: "Далее", check: "Проверить", done: "Заказ принят!",
-                send: "🚀 Оформить заказ"
+                send: "🚀 Оформить заказ", price_text: "Стоимость: "
             },
             uz: {
                 h2: "Buyurtma", h3: "Yetkazib berish", h4: "Natija",
                 what: "Nima olib kelamiz?", from: "Qayerdan (manzil)?", weight: "Vazni (kg)",
                 name: "Ismingiz", loc: "📍 Lokatsiya", back: "Orqaga",
                 next: "Keyingi", check: "Tekshirish", done: "Qabul qilindi!",
-                send: "🚀 Buyurtma berish"
+                send: "🚀 Buyurtma berish", price_text: "Narxi: "
             }
         };
+
+        function calculatePrice() {
+            let weight = parseFloat(document.getElementById('weight').value) || 0;
+            let total = BASE_PRICE + (weight * PRICE_PER_KG);
+            order.price = total;
+
+            let priceDiv = document.getElementById('price-display');
+            priceDiv.style.display = 'block';
+            priceDiv.innerText = translations[order.lang].price_text + total.toLocaleString() + ' UZS';
+        }
 
         function setLang(l) {
             order.lang = l;
             const t = translations[l];
-
-            // Заголовки
             document.getElementById('h2_2').innerText = t.h2;
             document.getElementById('h2_3').innerText = t.h3;
             document.getElementById('h2_4').innerText = t.h4;
-
-            // Плейсхолдеры (Примеры в инпутах)
             document.getElementById('what').placeholder = t.what;
             document.getElementById('from').placeholder = t.from;
             document.getElementById('weight').placeholder = t.weight;
             document.getElementById('name').placeholder = t.name;
-
-            // Кнопки
             document.getElementById('btn_loc').innerText = t.loc;
             document.getElementById('btn2').innerText = t.next;
             document.getElementById('btn3').innerText = t.check;
             document.getElementById('final-btn').innerText = t.send;
             document.querySelectorAll('.back-btn').forEach(b => b.innerText = t.back);
-
             document.getElementById('final_msg').innerText = t.done;
-
             next(2);
         }
 
@@ -179,16 +194,17 @@
         function prepareFinal() {
             order.what = document.getElementById('what').value;
             order.from = document.getElementById('from').value;
-            order.weight = document.getElementById('weight').value || "—";
+            order.weight = document.getElementById('weight').value || "0";
             order.name = document.getElementById('name').value;
             order.phone = document.getElementById('phone').value;
 
             const t = translations[order.lang];
             document.getElementById('summary').innerHTML = `
                 📦 ${t.what}: <b>${order.what}</b><br>
-                🛒 ${t.from}: <b>${order.from}</b><br>
+                ⚖️ ${t.weight}: <b>${order.weight} kg</b><br>
                 👤 ${t.name}: <b>${order.name}</b><br>
-                📞 Тел: <b>${order.phone}</b>
+                📞 Тел: <b>${order.phone}</b><br>
+                💰 <b>${t.price_text}${order.price.toLocaleString()} UZS</b>
             `;
             next(4);
         }

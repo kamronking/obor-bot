@@ -31,10 +31,17 @@ async def web_app_data_handler(message: Message):
         oid = str(int(datetime.now().timestamp()) % 1000)
         user_id = message.from_user.id
 
+        # Получаем и форматируем цену
+        price = data.get('price', 0)
+        formatted_price = f"{price:,}".replace(",", " ")
+
         is_uz = data.get('lang') == 'uz'
-        confirm_msg = f"✅ <b>Заказ №{oid} оформлен!</b>" if not is_uz else f"✅ <b>Buyurtma №{oid} qabul qilindi!</b>"
+        confirm_msg = (f"✅ <b>Заказ №{oid} оформлен!</b>\nСумма к оплате: <b>{formatted_price} UZS</b>"
+                       if not is_uz else
+                       f"✅ <b>Buyurtma №{oid} qabul qilindi!</b>\nTo'lov summasi: <b>{formatted_price} UZS</b>")
 
         details = (f"📦 {data['what']} ({data.get('weight', '?')} кг)\n"
+                   f"💰 <b>СТОИМОСТЬ: {formatted_price} UZS</b>\n"
                    f"📍 Откуда: {data['from']}\n"
                    f"👤 Клиент: {data['name']}\n"
                    f"📞 Тел: {data['phone']}")
@@ -46,7 +53,6 @@ async def web_app_data_handler(message: Message):
 
         await message.answer(confirm_msg, parse_mode="HTML")
 
-        # Кнопка для курьера: Принять
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🚕 ПРИНЯТЬ ЗАКАЗ", callback_data=f"acc_{oid}_{user_id}")]
         ])
@@ -67,10 +73,8 @@ async def web_app_data_handler(message: Message):
 async def accept_order(callback: CallbackQuery):
     parts = callback.data.split("_")
     order_id, client_id = parts[1], parts[2]
-
     await callback.answer("Заказ принят!")
 
-    # Кнопка меняется на "Доставлено"
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ ДОСТАВЛЕНО", callback_data=f"done_{order_id}_{client_id}")]
     ])
@@ -78,7 +82,6 @@ async def accept_order(callback: CallbackQuery):
     new_text = callback.message.text + f"\n\nСтатус: 🚕 <b>В ПУТИ</b>"
     await callback.message.edit_text(new_text, parse_mode="HTML", reply_markup=kb)
 
-    # Уведомляем клиента
     try:
         await bot.send_message(client_id, f"🚕 Курьер принял ваш заказ <b>№{order_id}</b> и уже выезжает!",
                                parse_mode="HTML")
@@ -91,19 +94,15 @@ async def accept_order(callback: CallbackQuery):
 async def finish_order(callback: CallbackQuery):
     parts = callback.data.split("_")
     order_id, client_id = parts[1], parts[2]
-
     await callback.answer("Заказ завершен!")
 
-    # Убираем все кнопки, пишем финальный статус
     final_text = callback.message.text.replace("Статус: 🚕 <b>В ПУТИ</b>", "")
     final_text += f"\n\nСтатус: 🏁 <b>ДОСТАВЛЕН</b> ({datetime.now().strftime('%H:%M')})"
 
     await callback.message.edit_text(final_text, parse_mode="HTML", reply_markup=None)
 
-    # Уведомляем клиента
     try:
-        await bot.send_message(client_id,
-                               f"✅ Ваш заказ <b>№{order_id}</b> успешно доставлен! Спасибо, что выбрали нас.",
+        await bot.send_message(client_id, f"✅ Ваш заказ <b>№{order_id}</b> доставлен! Спасибо за заказ.",
                                parse_mode="HTML")
     except:
         pass
