@@ -6,114 +6,51 @@
     <title>Obor Delivery</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --primary: #2ecc71;
-            --text: #f8fafc;
-        }
-
+        :root { --primary: #2ecc71; --text: #f8fafc; }
         body {
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            align-items: center; /* Центровка по вертикали */
-            justify-content: center; /* Центровка по горизонтали */
-            color: var(--text);
-            overflow: hidden;
-            /* ДВИГАЮЩИЙСЯ ФОН */
+            font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text); overflow: hidden;
             background: linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #334155);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
+            background-size: 400% 400%; animation: gradientBG 15s ease infinite;
         }
-
         @keyframes gradientBG {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
-
         .card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 25px;
-            border-radius: 30px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-            width: 90%;
-            max-width: 350px; /* Ограничение ширины */
-            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1); padding: 25px; border-radius: 30px;
+            width: 90%; max-width: 350px; box-sizing: border-box;
         }
-
         .step { display: none; }
         .step.active { display: block; animation: fadeIn 0.4s ease; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         h2 { font-size: 24px; color: var(--primary); margin: 0 0 20px 0; text-align: center; }
-
         input {
-            width: 100%;
-            padding: 14px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(0,0,0,0.3);
-            color: white;
-            font-size: 16px;
-            margin-bottom: 15px;
-            box-sizing: border-box;
-            outline: none;
+            width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.3); color: white; font-size: 16px; margin-bottom: 15px;
+            box-sizing: border-box; outline: none;
         }
-
         input:focus { border-color: var(--primary); }
-
         .btn-group { display: flex; gap: 10px; margin-top: 10px; }
-
         button {
-            width: 100%;
-            padding: 16px;
-            border-radius: 14px;
-            border: none;
-            background: var(--primary);
-            color: #000;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
+            width: 100%; padding: 16px; border-radius: 14px; border: none;
+            background: var(--primary); color: #000; font-size: 16px; font-weight: bold;
+            cursor: pointer; transition: 0.3s;
         }
-
         button:active { transform: scale(0.95); }
-
         button.sec { background: #334155; color: white; }
         button.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
-
         .summary {
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 14px;
-            border: 1px dashed var(--primary);
-            margin-bottom: 15px;
-            line-height: 1.6;
+            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px;
+            font-size: 14px; border: 1px dashed var(--primary); margin-bottom: 15px; line-height: 1.6;
         }
-
         #success-screen {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 9999;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 9999; background: #000; align-items: center; justify-content: center;
         }
-
-        .success-msg { color: #fff; font-size: 22px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -126,23 +63,23 @@
 
         <div id="step2" class="step">
             <h2 id="h2_2">Заказ</h2>
-            <input type="text" id="what" placeholder="Что везем?" oninput="check2()">
-            <input type="text" id="from" placeholder="Откуда?" oninput="check2()">
-            <input type="text" id="weight" placeholder="Вес (кг)" oninput="check2()">
+            <input type="text" id="what" oninput="check2()">
+            <input type="text" id="from" oninput="check2()">
+            <input type="text" id="weight" oninput="check2()">
             <div class="btn-group">
-                <button class="sec" id="back2" onclick="next(1)">Назад</button>
-                <button id="btn2" class="disabled" onclick="next(3)">Далее</button>
+                <button class="sec back-btn" onclick="next(1)">Назад</button>
+                <button id="btn2" class="disabled next-btn" onclick="next(3)">Далее</button>
             </div>
         </div>
 
         <div id="step3" class="step">
             <h2 id="h2_3">Доставка</h2>
-            <input type="text" id="name" placeholder="Имя" oninput="check3()">
+            <input type="text" id="name" oninput="check3()">
             <input type="tel" id="phone" value="+998 " oninput="check3()">
             <button id="btn_loc" class="sec" onclick="getLoc()">📍 Локация</button>
             <div class="btn-group">
-                <button class="sec" id="back3" onclick="next(2)">Назад</button>
-                <button id="btn3" class="disabled" onclick="prepareFinal()">Проверить</button>
+                <button class="sec back-btn" onclick="next(2)">Назад</button>
+                <button id="btn3" class="disabled check-btn" onclick="prepareFinal()">Проверить</button>
             </div>
         </div>
 
@@ -150,12 +87,12 @@
             <h2 id="h2_4">Итог</h2>
             <div id="summary" class="summary"></div>
             <button id="final-btn" onclick="startSuccessAnim()">🚀 Заказать</button>
-            <button class="sec" style="margin-top:10px" onclick="next(3)">Назад</button>
+            <button class="sec back-btn" style="margin-top:10px" onclick="next(3)">Назад</button>
         </div>
     </div>
 
-    <div id="success-screen" style="display: none;">
-        <div class="success-msg" id="final_msg">Отправка...</div>
+    <div id="success-screen">
+        <div style="color:white; font-size:22px; font-weight:bold;" id="final_msg"></div>
     </div>
 
     <script>
@@ -164,20 +101,46 @@
         tg.expand();
 
         const translations = {
-            ru: { h2: "Заказ", h3: "Доставка", h4: "Итог", what: "Что?", from: "Откуда?", weight: "Вес", name: "Имя", loc: "📍 Локация", back: "Назад", next: "Далее", check: "Проверить", done: "Заказ принят!", send: "🚀 Заказать" },
-            uz: { h2: "Buyurtma", h3: "Yetkazib berish", h4: "Natija", what: "Nima?", from: "Qayerdan?", weight: "Vazni", name: "Ism", loc: "📍 Lokatsiya", back: "Orqaga", next: "Keyingi", check: "Tekshirish", done: "Qabul qilindi!", send: "🚀 Buyurtma" }
+            ru: {
+                h2: "Заказ", h3: "Доставка", h4: "Итог",
+                what: "Что везем?", from: "Откуда (адрес)?", weight: "Вес (кг)",
+                name: "Ваше имя", loc: "📍 Локация", back: "Назад",
+                next: "Далее", check: "Проверить", done: "Заказ принят!",
+                send: "🚀 Оформить заказ"
+            },
+            uz: {
+                h2: "Buyurtma", h3: "Yetkazib berish", h4: "Natija",
+                what: "Nima olib kelamiz?", from: "Qayerdan (manzil)?", weight: "Vazni (kg)",
+                name: "Ismingiz", loc: "📍 Lokatsiya", back: "Orqaga",
+                next: "Keyingi", check: "Tekshirish", done: "Qabul qilindi!",
+                send: "🚀 Buyurtma berish"
+            }
         };
 
         function setLang(l) {
             order.lang = l;
             const t = translations[l];
+
+            // Заголовки
             document.getElementById('h2_2').innerText = t.h2;
             document.getElementById('h2_3').innerText = t.h3;
             document.getElementById('h2_4').innerText = t.h4;
+
+            // Плейсхолдеры (Примеры в инпутах)
+            document.getElementById('what').placeholder = t.what;
+            document.getElementById('from').placeholder = t.from;
+            document.getElementById('weight').placeholder = t.weight;
+            document.getElementById('name').placeholder = t.name;
+
+            // Кнопки
             document.getElementById('btn_loc').innerText = t.loc;
             document.getElementById('btn2').innerText = t.next;
             document.getElementById('btn3').innerText = t.check;
             document.getElementById('final-btn').innerText = t.send;
+            document.querySelectorAll('.back-btn').forEach(b => b.innerText = t.back);
+
+            document.getElementById('final_msg').innerText = t.done;
+
             next(2);
         }
 
@@ -207,7 +170,10 @@
                 document.getElementById('btn_loc').innerText = "✅ OK";
                 document.getElementById('btn_loc').style.background = "#27ae60";
                 check3();
-            }, () => alert("Включите GPS!"));
+            }, () => {
+                const msg = order.lang === 'ru' ? "Включите GPS!" : "GPS-ni yoqing!";
+                alert(msg);
+            });
         }
 
         function prepareFinal() {
@@ -217,11 +183,12 @@
             order.name = document.getElementById('name').value;
             order.phone = document.getElementById('phone').value;
 
+            const t = translations[order.lang];
             document.getElementById('summary').innerHTML = `
-                📦 <b>${order.what}</b><br>
-                🛒 <b>${order.from}</b><br>
-                👤 <b>${order.name}</b><br>
-                📞 <b>${order.phone}</b>
+                📦 ${t.what}: <b>${order.what}</b><br>
+                🛒 ${t.from}: <b>${order.from}</b><br>
+                👤 ${t.name}: <b>${order.name}</b><br>
+                📞 Тел: <b>${order.phone}</b>
             `;
             next(4);
         }
@@ -229,7 +196,6 @@
         function startSuccessAnim() {
             document.getElementById('main-card').style.display = 'none';
             document.getElementById('success-screen').style.display = 'flex';
-            document.getElementById('final_msg').innerText = translations[order.lang].done;
             setTimeout(() => { tg.sendData(JSON.stringify(order)); }, 1200);
         }
 
