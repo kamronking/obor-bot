@@ -19,7 +19,7 @@
         h2 { text-align: center; color: var(--neon); text-transform: uppercase; margin: 0 0 20px 0; font-size: 20px; }
         button { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--neon); color: black; font-weight: bold; font-size: 16px; margin: 5px 0; cursor: pointer; }
         button.sec { background: #1e293b; color: white; }
-        input { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 12px; box-sizing: border-box; outline: none; font-size: 16px; }
+        input, select { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 12px; box-sizing: border-box; outline: none; font-size: 16px; }
         #map-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; background: var(--dark); }
         #map { width: 100%; height: 70%; }
         .map-bar { height: 30%; padding: 20px; background: var(--dark); box-sizing: border-box; text-align: center; }
@@ -35,18 +35,37 @@
             <button onclick="applyLang('ru')">Русский</button>
             <button onclick="applyLang('uz')">O'zbekcha</button>
         </div>
+
         <div id="step2" class="step">
             <h2 id="h-cat">Тип заказа</h2>
             <button id="btn-parcel" onclick="setCat('parcel')">📦 Посылка</button>
             <button id="btn-food" onclick="setCat('food')">🛒 Продукты</button>
             <button class="sec" id="btn-back1" onclick="go(1)">Назад</button>
         </div>
+
+        <div id="step-weight" class="step">
+            <h2 id="h-weight">Вес посылки</h2>
+            <select id="inp-weight" onchange="calcPrice()">
+                <option value="1">До 5 кг (Бесплатно)</option>
+                <option value="6">6 кг (+2 000 сум)</option>
+                <option value="7">7 кг (+4 000 сум)</option>
+                <option value="8">8 кг (+6 000 сум)</option>
+                <option value="9">9 кг (+8 000 сум)</option>
+                <option value="10">10 кг (+10 000 сум)</option>
+                <option value="15">15 кг (+20 000 сум)</option>
+                <option value="20">20 кг (+30 000 сум)</option>
+            </select>
+            <button id="btn-next-w" onclick="go(3)">Далее</button>
+            <button class="sec" onclick="go(2)">Назад</button>
+        </div>
+
         <div id="step3" class="step">
             <h2 id="h-what">Детали</h2>
             <input type="text" id="inp-what">
             <button id="btn-next3" onclick="go(4)">Далее</button>
-            <button class="sec" id="btn-back2" onclick="go(2)">Назад</button>
+            <button class="sec" id="btn-back2" onclick="handleBackToWeight()">Назад</button>
         </div>
+
         <div id="step4" class="step">
             <h2 id="h-route">Маршрут</h2>
             <button id="b-from" class="sec" onclick="openMap('from')">📍 Точка А (Откуда)</button>
@@ -55,6 +74,7 @@
             <button id="btn-next4" style="display:none" onclick="go(5)">Далее</button>
             <button class="sec" id="btn-back3" onclick="go(3)">Назад</button>
         </div>
+
         <div id="step5" class="step">
             <h2 id="h-fin">Оформление</h2>
             <input type="text" id="user-name" oninput="validateName(this)">
@@ -76,28 +96,35 @@
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
-        let order = { lang:'ru', type:'', what:'', lat_from:0, lon_from:0, lat_to:0, lon_to:0, price:7000 };
+        let order = { lang:'ru', type:'', what:'', weight:1, lat_from:0, lon_from:0, lat_to:0, lon_to:0, price:7000 };
         let map, mapMode = '';
 
-        // Маска для телефона
         const phoneMask = IMask(document.getElementById('user-phone'), {
             mask: '+{998} (00) 000-00-00',
             lazy: false
         });
 
-        // Только буквы для имени
         function validateName(input) {
             input.value = input.value.replace(/[^a-zA-Zа-яА-ЯёЁ\s]/g, '');
         }
 
         const texts = {
-            ru: { cat: "Тип заказа", what: "Что везем?", route: "Маршрут", fin: "Оформление", parcel: "📦 Посылка", food: "🛒 Продукты", back: "Назад", next: "Далее", order: "🚀 Заказать", name: "Ваше имя (буквы)", placeholder: "Например: Ключи", confirm: "Подтвердить место", cancel: "Отмена" },
-            uz: { cat: "Buyurtma turi", what: "Nima olib boramiz?", route: "Yo'nalish", fin: "Ma'lumotlar", parcel: "📦 Posilka", food: "🛒 Mahsulotlar", back: "Orqaga", next: "Keyingisi", order: "🚀 Buyurtma berish", name: "Ismingiz (harflar)", placeholder: "Masalan: Kalitlar", confirm: "Joyni tasdiqlash", cancel: "Bekor qilish" }
+            ru: {
+                cat: "Тип заказа", weight: "Вес посылки", what: "Что везем?", route: "Маршрут", fin: "Оформление",
+                parcel: "📦 Посылка", food: "🛒 Продукты", back: "Назад", next: "Далее", order: "🚀 Заказать",
+                name: "Ваше имя (буквы)", placeholder: "Например: Ключи", confirm: "Подтвердить", cancel: "Отмена"
+            },
+            uz: {
+                cat: "Buyurtma turi", weight: "Posilka vazni", what: "Nima olib boramiz?", route: "Yo'nalish", fin: "Ma'lumotlar",
+                parcel: "📦 Posilka", food: "🛒 Mahsulotlar", back: "Orqaga", next: "Keyingisi", order: "🚀 Buyurtma berish",
+                name: "Ismingiz (harflar)", placeholder: "Masalan: Kalitlar", confirm: "Tasdiqlash", cancel: "Bekor qilish"
+            }
         };
 
         function applyLang(l) {
             order.lang = l; const t = texts[l];
             document.getElementById('h-cat').innerText = t.cat;
+            document.getElementById('h-weight').innerText = t.weight;
             document.getElementById('h-what').innerText = t.what;
             document.getElementById('h-route').innerText = t.route;
             document.getElementById('h-fin').innerText = t.fin;
@@ -107,14 +134,37 @@
             document.getElementById('user-name').placeholder = t.name;
             document.getElementById('btn-confirm').innerText = t.confirm;
             document.getElementById('btn-cancel').innerText = t.cancel;
-            document.querySelectorAll("[id^='btn-back']").forEach(b => b.innerText = t.back);
-            document.querySelectorAll("[id^='btn-next']").forEach(b => b.innerText = t.next);
+            document.querySelectorAll("button.sec, #btn-back1, #btn-back2, #btn-back3, #btn-back4").forEach(b => b.innerText = t.back);
+            document.querySelectorAll("#btn-next-w, #btn-next3, #btn-next4").forEach(b => b.innerText = t.next);
             document.getElementById('btn-order').innerText = t.order;
+
+            // Обновляем список веса на нужном языке
+            const wSelect = document.getElementById('inp-weight');
+            wSelect.options[0].text = l === 'ru' ? "До 5 кг (Бесплатно)" : "5 kg gacha (Bepul)";
+            for(let i=1; i<wSelect.options.length; i++) {
+                let kg = wSelect.options[i].value;
+                let add = (kg - 5) * 2000;
+                wSelect.options[i].text = `${kg} kg (+${add.toLocaleString()} sum)`;
+            }
+
             go(2);
         }
 
-        function setCat(c) { order.type = c; go(3); }
-        function go(s) { document.querySelectorAll('.step').forEach(el => el.classList.remove('active')); document.getElementById('step'+s).classList.add('active'); }
+        function setCat(c) {
+            order.type = c;
+            if(c === 'parcel') go('weight');
+            else { order.weight = 0; go(3); }
+        }
+
+        function handleBackToWeight() {
+            if(order.type === 'parcel') go('weight');
+            else go(2);
+        }
+
+        function go(s) {
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById(typeof s === 'number' ? 'step'+s : 'step-'+s).classList.add('active');
+        }
 
         function openMap(m) {
             mapMode = m; document.getElementById('map-ui').style.display = 'block';
@@ -125,7 +175,25 @@
             setTimeout(() => { map.invalidateSize(); }, 200);
             map.locate({setView: true, maxZoom: 16});
         }
+
         function closeMap() { document.getElementById('map-ui').style.display = 'none'; }
+
+        function calcPrice() {
+            if(!order.lat_from || !order.lat_to) return;
+
+            let dist = L.latLng(order.lat_from, order.lon_from).distanceTo(L.latLng(order.lat_to, order.lon_to)) / 1000;
+            let basePrice = 7000 + (dist * 1000);
+
+            // Доплата за вес
+            let weight = parseInt(document.getElementById('inp-weight').value);
+            let weightSurcharge = 0;
+            if(order.type === 'parcel' && weight > 5) {
+                weightSurcharge = (weight - 5) * 2000;
+            }
+
+            order.price = Math.round(basePrice + weightSurcharge);
+            document.getElementById('price-val').innerText = order.price.toLocaleString() + " UZS";
+        }
 
         function confirmLoc() {
             let c = map.getCenter();
@@ -137,9 +205,7 @@
                 document.getElementById('b-to').innerText = "✅ " + (order.lang === 'ru' ? "Б выбрано" : "B tanlandi");
             }
             if(order.lat_from && order.lat_to) {
-                let d = L.latLng(order.lat_from, order.lon_from).distanceTo(L.latLng(order.lat_to, order.lon_to)) / 1000;
-                order.price = Math.round(7000 + (d * 1000));
-                document.getElementById('price-val').innerText = order.price.toLocaleString() + " UZS";
+                calcPrice();
                 document.getElementById('btn-next4').style.display = 'block';
             }
             closeMap();
@@ -150,6 +216,7 @@
             order.what = document.getElementById('inp-what').value;
             order.name = document.getElementById('user-name').value;
             order.phone = "+" + rawPhone;
+            order.weight = document.getElementById('inp-weight').value;
 
             if(order.name.length < 2 || rawPhone.length < 12 || !order.what) {
                 alert(order.lang === 'ru' ? "Заполните все данные!" : "Ma'lumotlarni to'ldiring!");
