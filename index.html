@@ -10,120 +10,140 @@
     <script src="https://unpkg.com/imask"></script>
     <style>
         :root { --neon: #00e676; --dark: #0a0f1a; --card-bg: #1e293b; }
-        body { font-family: sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; overflow: hidden; height: 100vh; }
+        body { font-family: -apple-system, sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; overflow: hidden; height: 100vh; }
 
-        #map-ui { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        #map { width: 100%; height: 100%; transition: transform 0.5s ease; }
+        /* Контейнер для 3D карты */
+        #map-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; perspective: 1000px; }
+        #map { width: 100%; height: 110%; transform: rotateX(15deg) translateY(-5%); transform-origin: bottom; }
 
-        /* 3D эффект для карты */
-        .map-3d { transform: perspective(600px) rotateX(20deg); }
+        /* Поиск адреса */
+        .search-container { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 90%; z-index: 2000; }
+        .search-input { width: 100%; padding: 14px; border-radius: 14px; border: none; font-size: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); outline: none; }
+        #search-results { background: white; color: black; border-radius: 0 0 14px 14px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .search-item { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; cursor: pointer; }
 
-        .search-container { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 90%; z-index: 1000; }
-        .search-input { width: 100%; padding: 12px; border-radius: 12px; border: none; font-size: 16px; outline: none; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-
-        .card { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); width: 95%; max-width: 420px;
-                background: var(--card-bg); padding: 20px; border-radius: 24px; z-index: 10; box-shadow: 0 -5px 25px rgba(0,0,0,0.5); box-sizing: border-box; }
+        /* Карточка Mini App */
+        .card { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 400px;
+                background: var(--card-bg); padding: 20px; border-radius: 28px; z-index: 1000; box-shadow: 0 -10px 30px rgba(0,0,0,0.6); box-sizing: border-box; }
 
         .step { display: none; }
-        .step.active { display: block; animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .step.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        button { width: 100%; padding: 15px; border-radius: 14px; border: none; background: var(--neon); color: black; font-weight: 700; font-size: 16px; margin: 5px 0; }
+        h2 { font-size: 19px; margin: 0 0 15px 0; text-align: center; font-weight: 800; }
+        button { width: 100%; padding: 16px; border-radius: 16px; border: none; background: var(--neon); color: black; font-weight: 700; font-size: 16px; margin: 6px 0; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
         button.sec { background: rgba(255,255,255,0.1); color: white; }
-        input, select { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 10px; box-sizing: border-box; }
 
-        .center-marker { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 999; pointer-events: none; font-size: 40px; }
-        .locate-btn { position: absolute; bottom: 230px; right: 15px; z-index: 999; background: white; color: black; border-radius: 12px; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-        .summary-box { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; margin-bottom: 10px; font-size: 14px; border-left: 3px solid var(--neon); }
-        #search-results div { background: white; color: black; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+        input, select { width: 100%; padding: 15px; border-radius: 14px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; }
+
+        .center-marker { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); z-index: 1500; pointer-events: none; font-size: 45px; filter: drop-shadow(0 4px 5px rgba(0,0,0,0.5)); }
+        .locate-btn { position: absolute; bottom: 240px; right: 20px; z-index: 1500; background: white; color: black; border-radius: 14px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+
+        .summary-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 18px; margin-bottom: 15px; border-left: 5px solid var(--neon); font-size: 14px; line-height: 1.5; }
     </style>
 </head>
 <body>
 
-    <div id="map-ui">
-        <div class="search-container" id="search-box" style="display:none;">
-            <input type="text" class="search-input" id="addr-search" placeholder="Поиск..." oninput="searchAddress(this.value)">
-            <div id="search-results"></div>
-        </div>
+    <div id="map-container">
         <div id="map"></div>
-        <div class="center-marker" id="main-pin" style="display:none;">📍</div>
-        <div class="locate-btn" id="loc-btn" style="display:none;" onclick="locateMe()">🎯</div>
     </div>
+
+    <div class="search-container" id="search-box" style="display:none;">
+        <input type="text" class="search-input" id="addr-search" placeholder="Поиск адреса..." oninput="searchAddress(this.value)">
+        <div id="search-results"></div>
+    </div>
+
+    <div class="center-marker" id="main-pin" style="display:none;">📍</div>
+    <div class="locate-btn" id="loc-btn" style="display:none;" onclick="locateMe()">🎯</div>
 
     <div class="card">
         <div id="step1" class="step active">
-            <h2>Язык / Til</h2>
-            <button onclick="applyLang('ru')">Русский</button>
-            <button onclick="applyLang('uz')">O'zbekcha</button>
+            <h2>Tilni tanlang / Язык</h2>
+            <button onclick="applyLang('ru')">🇷🇺 Русский</button>
+            <button onclick="applyLang('uz')">🇺🇿 O'zbekcha</button>
         </div>
+
         <div id="step2" class="step">
             <h2 id="h-cat">Тип заказа</h2>
             <button onclick="setCat('parcel')">📦 Посылка</button>
             <button onclick="setCat('food')">🛒 Продукты</button>
+            <button class="sec" onclick="go(1)">Orqaga</button>
         </div>
+
         <div id="step-weight" class="step">
-            <h2 id="h-weight">Вес</h2>
+            <h2 id="h-weight">Вес посылки</h2>
             <select id="inp-weight" onchange="calcPrice()">
-                <option value="5">До 5 кг</option>
-                <option value="10">10 кг (+10к)</option>
-                <option value="20">20 кг (+30к)</option>
+                <option value="5">До 5 кг (Базово)</option>
+                <option value="10">10 кг (+10 000 сум)</option>
+                <option value="20">20 кг (+30 000 сум)</option>
             </select>
             <button onclick="go(3)">Далее</button>
+            <button class="sec" onclick="go(2)">Назад</button>
         </div>
+
         <div id="step3" class="step">
             <h2 id="h-what">Что везем?</h2>
-            <input type="text" id="inp-what">
-            <button onclick="go(4)">К маршруту</button>
+            <input type="text" id="inp-what" placeholder="Название товара...">
+            <button onclick="go(4)">Выбрать маршрут</button>
+            <button class="sec" onclick="handleBackToWeight()">Назад</button>
         </div>
+
         <div id="step4" class="step">
             <h2 id="h-route">Маршрут</h2>
-            <button id="b-from" class="sec" onclick="openMapMode('from')">📍 Откуда</button>
-            <button id="b-to" class="sec" onclick="openMapMode('to')">🏁 Куда</button>
-            <div id="price-val" style="text-align:center; font-weight:bold; color:var(--neon); margin:10px;">7,000 UZS</div>
-            <button id="btn-next4" style="display:none" onclick="showSummary()">Оформить</button>
+            <button id="b-from" class="sec" onclick="openMapMode('from')">📍 Откуда забрать</button>
+            <button id="b-to" class="sec" onclick="openMapMode('to')">🏁 Куда доставить</button>
+            <div id="price-val" style="text-align:center; font-weight:900; color:var(--neon); font-size:22px; margin:10px;">7,000 UZS</div>
+            <button id="btn-next4" style="display:none" onclick="showSummary()">Оформить заказ</button>
+            <button class="sec" onclick="go(3)">Назад</button>
         </div>
+
         <div id="step-map-confirm" class="step">
-            <h2>Укажите на карте</h2>
-            <button onclick="confirmPoint()">Подтвердить</button>
-            <button class="sec" onclick="go(4)">Назад</button>
+            <h2 id="h-instr">Передвиньте карту под маркер</h2>
+            <button onclick="confirmPoint()">Подтвердить это место</button>
+            <button class="sec" onclick="go(4)">Назад к кнопкам</button>
         </div>
+
         <div id="step5" class="step">
-            <h2>Оформление</h2>
+            <h2 id="h-fin">Завершение</h2>
             <div id="summary-data" class="summary-box"></div>
-            <input type="text" id="user-name" placeholder="Имя">
-            <input type="tel" id="user-phone" placeholder="+998">
-            <button onclick="finish()">🚀 Заказать</button>
+            <input type="text" id="user-name" placeholder="Ваше имя">
+            <input type="tel" id="user-phone">
+            <button onclick="finish()">🚀 ОТПРАВИТЬ ЗАКАЗ</button>
+            <button class="sec" onclick="go(4)">Назад</button>
         </div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
+        tg.expand();
         let order = { lang:'ru', type:'', what:'', weight:5, lat_from:0, lon_from:0, lat_to:0, lon_to:0, price:7000 };
         let map, mapMode = '', searchTimeout;
 
         const phoneMask = IMask(document.getElementById('user-phone'), { mask: '+{998} (00) 000-00-00' });
 
         function initMap() {
-            // Центр — Гулистан, Сырдарья (40.4897, 68.7848)
-            map = L.map('map', {zoomControl: false}).setView([40.4897, 68.7848], 14);
-            // Слой с магазинами и деталями (OpenStreetMap Hot)
+            // Центр Гулистан
+            map = L.map('map', {zoomControl: false}).setView([40.4897, 68.7848], 15);
+            // Детальная карта
             L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png').addTo(map);
-            document.getElementById('map').classList.add('map-3d');
         }
         initMap();
 
         function applyLang(l) { order.lang = l; go(2); }
         function setCat(c) { order.type = c; if(c==='parcel') go('weight'); else go(3); }
+        function handleBackToWeight() { if(order.type==='parcel') go('weight'); else go(2); }
 
         function go(s) {
             document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
             let target = typeof s === 'string' ? 'step-'+s : 'step'+s;
             document.getElementById(target).classList.add('active');
 
-            const isMap = (s === 'map-confirm');
-            document.getElementById('search-box').style.display = isMap ? 'block' : 'none';
-            document.getElementById('main-pin').style.display = isMap ? 'block' : 'none';
-            document.getElementById('loc-btn').style.display = isMap ? 'block' : 'none';
+            // Видимость элементов карты
+            const isMapMode = (s === 'map-confirm');
+            document.getElementById('search-box').style.display = isMapMode ? 'block' : 'none';
+            document.getElementById('main-pin').style.display = isMapMode ? 'block' : 'none';
+            document.getElementById('loc-btn').style.display = isMapMode ? 'block' : 'none';
         }
 
         function openMapMode(m) { mapMode = m; go('map-confirm'); }
@@ -133,10 +153,12 @@
             let c = map.getCenter();
             if(mapMode === 'from') {
                 order.lat_from = c.lat; order.lon_from = c.lng;
-                document.getElementById('b-from').innerText = "✅ Откуда: ок";
+                document.getElementById('b-from').innerText = "✅ Откуда: выбрано";
+                document.getElementById('b-from').style.background = "rgba(0, 230, 118, 0.2)";
             } else {
                 order.lat_to = c.lat; order.lon_to = c.lng;
-                document.getElementById('b-to').innerText = "✅ Куда: ок";
+                document.getElementById('b-to').innerText = "✅ Куда: выбрано";
+                document.getElementById('b-to').style.background = "rgba(0, 230, 118, 0.2)";
             }
             if(order.lat_from && order.lat_to) { calcPrice(); document.getElementById('btn-next4').style.display='block'; }
             go(4);
@@ -152,8 +174,9 @@
                     res.innerHTML = '';
                     data.forEach(i => {
                         let d = document.createElement('div');
+                        d.className = 'search-item';
                         d.innerText = i.display_name;
-                        d.onclick = () => { map.setView([i.lat, i.lon], 16); res.innerHTML = ''; };
+                        d.onclick = () => { map.setView([i.lat, i.lon], 17); res.innerHTML = ''; };
                         res.appendChild(d);
                     });
                 });
@@ -161,16 +184,21 @@
         }
 
         function calcPrice() {
+            if(!order.lat_from || !order.lat_to) return;
             let dist = L.latLng(order.lat_from, order.lon_from).distanceTo(L.latLng(order.lat_to, order.lon_to)) / 1000;
-            let p = 7000 + (dist * 1500);
-            let w = parseInt(document.getElementById('inp-weight').value);
+            let p = 7000 + (dist * 1800);
+            let w = parseInt(document.getElementById('inp-weight').value || 5);
             if(order.type === 'parcel' && w > 5) p += (w-5)*2000;
             order.price = Math.round(p/500)*500;
             document.getElementById('price-val').innerText = order.price.toLocaleString() + " UZS";
         }
 
         function showSummary() {
-            document.getElementById('summary-data').innerHTML = `Тип: ${order.type}<br>Сумма: ${order.price} UZS`;
+            const isRu = order.lang === 'ru';
+            let h = `<b>${isRu?'Что:':'Nima:'}</b> ${document.getElementById('inp-what').value}<br>` +
+                    `<b>${isRu?'Тип:':'Turi:'}</b> ${order.type==='parcel'?'Посылка':'Продукты'}<br>` +
+                    `<b>${isRu?'Итого:':'Jami:'}</b> ${order.price.toLocaleString()} UZS`;
+            document.getElementById('summary-data').innerHTML = h;
             go(5);
         }
 
@@ -178,7 +206,7 @@
             order.name = document.getElementById('user-name').value;
             order.phone = phoneMask.value;
             order.what = document.getElementById('inp-what').value;
-            if(!order.name || order.phone.length < 10) return alert("Заполните всё!");
+            if(!order.name || order.phone.length < 18) return alert(order.lang==='ru'?'Заполните данные!':'Maʼlumotlarni toʻldiring!');
             tg.sendData(JSON.stringify(order));
         }
     </script>
