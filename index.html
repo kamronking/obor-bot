@@ -9,57 +9,65 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/imask"></script>
     <style>
-        :root { --neon: #00e676; --dark: #0a0f1a; }
-        body { font-family: -apple-system, sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; overflow: hidden; height: 100vh; }
-        .card { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 92%; max-width: 400px;
-                background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(20px); padding: 25px; border-radius: 25px; z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
+        :root { --neon: #00e676; --dark: #0a0f1a; --card-bg: rgba(15, 23, 42, 0.95); }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; overflow: hidden; height: 100vh; }
+
+        .card { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); width: 95%; max-width: 420px;
+                background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+                padding: 20px; border-radius: 28px; z-index: 10; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box;
+                max-height: 80vh; overflow-y: auto; }
+
         .step { display: none; }
-        .step.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        h2 { text-align: center; color: var(--neon); font-size: 18px; margin-bottom: 20px; text-transform: uppercase; }
-        button { width: 100%; padding: 18px; border-radius: 15px; border: none; background: var(--neon); color: black; font-weight: bold; font-size: 16px; margin: 6px 0; cursor: pointer; transition: 0.2s; }
-        button:active { transform: scale(0.98); }
-        button.sec { background: rgba(255,255,255,0.1); color: white; }
-        input, select { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 15px; box-sizing: border-box; outline: none; }
+        .step.active { display: block; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { text-align: left; font-size: 20px; margin: 0 0 15px 5px; font-weight: 700; color: white; }
+        button { width: 100%; padding: 16px; border-radius: 16px; border: none; background: var(--neon); color: black; font-weight: 700; font-size: 16px; margin: 6px 0; cursor: pointer; }
+        button.sec { background: rgba(255,255,255,0.1); color: #94a3b8; }
+        input, select { width: 100%; padding: 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; margin-bottom: 12px; box-sizing: border-box; font-size: 16px; }
+
         #map-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; }
         #map { width: 100%; height: 100%; }
-        .center-marker { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1001; pointer-events: none; font-size: 45px; }
+        .center-marker { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1001; pointer-events: none; font-size: 45px; filter: drop-shadow(0 4px 4px black); }
+        .locate-btn { position: absolute; bottom: 180px; right: 20px; z-index: 1002; background: white; color: black; border-radius: 14px; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
         .map-btns { position: absolute; bottom: 30px; left: 5%; width: 90%; z-index: 1002; }
-        .locate-btn { position: absolute; bottom: 120px; right: 20px; z-index: 1002; background: white; color: black; padding: 10px; border-radius: 50%; width: 50px; height: 50px; text-align: center; font-size: 24px; line-height: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-        .summary-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; margin-bottom: 15px; font-size: 14px; border-left: 4px solid var(--neon); }
+        .summary-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; margin-bottom: 15px; border-left: 4px solid var(--neon); font-size: 14px; color: #cbd5e1; }
     </style>
 </head>
 <body>
 
     <div class="card">
         <div id="step1" class="step active">
-            <h2>Tilni tanlang / Язык</h2>
-            <button onclick="applyLang('ru')">Русский</button>
-            <button onclick="applyLang('uz')">O'zbekcha</button>
+            <h2>Выберите язык / Til</h2>
+            <button onclick="applyLang('ru')">🇷🇺 Русский</button>
+            <button onclick="applyLang('uz')">🇺🇿 O'zbekcha</button>
         </div>
+
         <div id="step2" class="step">
             <h2 id="h-cat">Тип заказа</h2>
             <button id="btn-p" onclick="setCat('parcel')">📦 Посылка</button>
             <button id="btn-f" onclick="setCat('food')">🛒 Продукты</button>
             <button class="sec" id="btn-back1" onclick="go(1)">Назад</button>
         </div>
+
         <div id="step-weight" class="step">
-            <h2 id="h-weight">Вес посылки</h2>
+            <h2 id="h-weight">Вес</h2>
             <select id="inp-weight" onchange="calcPrice()">
                 <option value="5">До 5 кг (Бесплатно)</option>
-                <option value="6">6 кг (+2 000 сум)</option>
                 <option value="10">10 кг (+10 000 сум)</option>
                 <option value="20">20 кг (+30 000 сум)</option>
             </select>
             <button id="btn-next-w" onclick="go(3)">Далее</button>
             <button class="sec" onclick="go(2)">Назад</button>
         </div>
+
         <div id="step3" class="step">
             <h2 id="h-what">Детали</h2>
             <input type="text" id="inp-what">
             <button id="btn-next3" onclick="go(4)">К маршруту</button>
             <button class="sec" onclick="handleBackToWeight()">Назад</button>
         </div>
+
         <div id="step4" class="step">
             <h2 id="h-route">Маршрут</h2>
             <button id="b-from" class="sec" onclick="openMap('from')">📍 Откуда</button>
@@ -68,12 +76,13 @@
             <button id="btn-next4" style="display:none" onclick="showSummary()">Оформить</button>
             <button class="sec" onclick="go(3)">Назад</button>
         </div>
+
         <div id="step5" class="step">
-            <h2 id="h-fin">Оформление</h2>
+            <h2 id="h-fin">Завершение</h2>
             <div id="summary-data" class="summary-box"></div>
-            <input type="text" id="user-name" oninput="validateName(this)">
+            <input type="text" id="user-name" placeholder="Имя">
             <input type="tel" id="user-phone">
-            <button id="btn-order" onclick="finish()">🚀 Подтвердить заказ</button>
+            <button id="btn-order" onclick="finish()">🚀 Заказать</button>
             <button class="sec" onclick="go(4)">Назад</button>
         </div>
     </div>
@@ -84,7 +93,7 @@
         <div class="locate-btn" onclick="locateMe()">🎯</div>
         <div class="map-btns">
             <button id="btn-confirm" onclick="confirmLoc()">Подтвердить</button>
-            <button class="sec" id="btn-cancel" onclick="closeMap()">Отмена</button>
+            <button class="sec" onclick="closeMap()">Отмена</button>
         </div>
     </div>
 
@@ -96,10 +105,8 @@
 
         const phoneMask = IMask(document.getElementById('user-phone'), { mask: '+{998} (00) 000-00-00', lazy: false });
 
-        function validateName(i) { i.value = i.value.replace(/[^a-zA-Zа-яА-ЯёЁ\s]/g, ''); }
-
         const texts = {
-            ru: { cat:"Тип заказа", weight:"Вес", what:"Описание", route:"Маршрут", fin:"Оформление", confirm:"Подтвердить", cancel:"Отмена", back:"Назад", next:"Далее", p:"📦 Посылка", f:"🛒 Продукты", name:"Имя (буквы)", placeholder:"Что везем?" },
+            ru: { cat:"Тип заказа", weight:"Вес", what:"Описание", route:"Маршрут", fin:"Оформление", confirm:"Подтвердить", cancel:"Отмена", back:"Назад", next:"Далее", p:"📦 Посылка", f:"🛒 Продукты", name:"Ваше имя", placeholder:"Что везем?" },
             uz: { cat:"Buyurtma turi", weight:"Vazni", what:"Tavsif", route:"Yo'nalish", fin:"Yakunlash", confirm:"Tasdiqlash", cancel:"Bekor qilish", back:"Orqaga", next:"Keyingi", p:"📦 Posilka", f:"🛒 Mahsulotlar", name:"Ismingiz", placeholder:"Nima olib boramiz?" }
         };
 
@@ -113,10 +120,8 @@
             document.getElementById('btn-p').innerText = t.p;
             document.getElementById('btn-f').innerText = t.f;
             document.getElementById('btn-confirm').innerText = t.confirm;
-            document.getElementById('btn-cancel').innerText = t.cancel;
-            document.getElementById('btn-back1').innerText = t.back;
-            document.getElementById('btn-next-w').innerText = t.next;
-            document.getElementById('btn-next3').innerText = t.next;
+            document.querySelectorAll(".sec, #btn-back1").forEach(b => b.innerText = t.back);
+            document.querySelectorAll("#btn-next-w, #btn-next3, #btn-next4").forEach(b => b.innerText = t.next);
             document.getElementById('user-name').placeholder = t.name;
             document.getElementById('inp-what').placeholder = t.placeholder;
             go(2);
@@ -141,8 +146,8 @@
 
         function confirmLoc() {
             let c = map.getCenter();
-            if(mapMode === 'from') { order.lat_from = c.lat; order.lon_from = c.lng; document.getElementById('b-from').innerText = "✅ ОТКУДА"; }
-            else { order.lat_to = c.lat; order.lon_to = c.lng; document.getElementById('b-to').innerText = "✅ КУДА"; }
+            if(mapMode === 'from') { order.lat_from = c.lat; order.lon_from = c.lng; document.getElementById('b-from').innerText = "✅ ОТКУДА ВЫБРАНО"; }
+            else { order.lat_to = c.lat; order.lon_to = c.lng; document.getElementById('b-to').innerText = "✅ КУДА ВЫБРАНО"; }
             if(order.lat_from && order.lat_to) { calcPrice(); document.getElementById('btn-next4').style.display='block'; }
             closeMap();
         }
@@ -170,7 +175,7 @@
             order.name = document.getElementById('user-name').value;
             order.phone = phoneMask.value;
             order.what = document.getElementById('inp-what').value;
-            if(!order.name || order.phone.includes('_') || !order.what) return alert(order.lang==='ru'?'Заполните всё!':'Hamma joyni to\'ldiring!');
+            if(!order.name || order.phone.includes('_') || !order.what) return alert("Заполните поля!");
             tg.sendData(JSON.stringify(order));
         }
     </script>

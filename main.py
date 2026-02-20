@@ -14,11 +14,13 @@ from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 from math import radians, cos, sin, asin, sqrt
 
+# Загрузка настроек
 load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMIN_IDS = [int(id.strip()) for id in os.getenv('ADMIN_IDS', '').split(',') if id.strip()]
 WEB_APP_URL = "https://kamronking.github.io/obor-bot/"
 
+# Защита от двойного принятия заказа
 active_orders_lock = {}
 
 
@@ -54,12 +56,12 @@ async def start(message: Message):
         keyboard=[[KeyboardButton(text="🚀 Заказать / Buyurtma", web_app=WebAppInfo(url=cache_url))]],
         resize_keyboard=True)
 
-    welcome_text = (
+    welcome = (
         "👋 <b>Obor Delivery</b>\n\n"
         "🇷🇺 Нажмите кнопку ниже для заказа\n"
         "🇺🇿 Buyurtma berish uchun tugmani bosing"
     )
-    await message.answer(welcome_text, reply_markup=kb, parse_mode="HTML")
+    await message.answer(welcome, reply_markup=kb, parse_mode="HTML")
 
 
 @dp.message(F.web_app_data)
@@ -88,16 +90,15 @@ async def handle_webapp(message: Message):
                     f"🗂 <b>Тип:</b> {cat}{w_str}\n"
                     f"📦 <b>Что:</b> {data['what']}\n"
                     f"💰 <b>Цена:</b> <b>{data['price']:,} UZS</b>\n"
-                    f"📏 <b>Путь:</b> {dist:.1f} км\n"
+                    f"📏 <b>Дистанция:</b> {dist:.1f} км\n"
                     f"━━━━━━━━━━━━━━━\n"
-                    f"👤 <b>Имя:</b> {data['name']}\n"
+                    f"👤 <b>Клиент:</b> {data['name']}\n"
                     f"📞 <b>Тел:</b> {data['phone']}\n\n"
-                    f"📍 <a href='{url_a}'>ОТКУДА (Точка А)</a>\n"
-                    f"🏁 <a href='{url_b}'>КУДА (Точка Б)</a>")
+                    f"📍 <a href='{url_a}'>ТОЧКА А (Откуда)</a>\n"
+                    f"🏁 <a href='{url_b}'>ТОЧКА Б (Куда)</a>")
 
-        # Кнопка ПРИНЯТЬ (передаем UID и LANG)
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🚕 ПРИНЯТЬ", callback_data=f"acc_{oid}_{message.from_user.id}_{lang}")]])
+            [InlineKeyboardButton(text="🚕 ПРИНЯТЬ ЗАКАЗ", callback_data=f"acc_{oid}_{message.from_user.id}_{lang}")]])
 
         for aid in ADMIN_IDS:
             await bot.send_message(aid, text_adm, reply_markup=kb, parse_mode="HTML", disable_web_page_preview=True)
@@ -106,25 +107,23 @@ async def handle_webapp(message: Message):
         await message.answer(resp, parse_mode="HTML")
 
     except Exception as e:
-        print(f"WEBAPP ERROR: {e}")
+        print(f"ERR: {e}")
 
 
 @dp.callback_query(F.data.startswith("acc_"))
 async def accept(callback: CallbackQuery):
     _, oid, uid, lang = callback.data.split("_")
-    if oid in active_orders_lock: return await callback.answer("Этот заказ уже взят!", show_alert=True)
+    if oid in active_orders_lock: return await callback.answer("Уже принято!", show_alert=True)
 
     active_orders_lock[oid] = callback.from_user.first_name
-
-    # Кнопка ДОСТАВЛЕНО
     kb_done = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="🏁 ДОСТАВЛЕНО", callback_data=f"done_{oid}_{uid}_{lang}")]])
 
     await callback.message.edit_text(callback.message.html_text + f"\n\n🤝 <b>Взял: {callback.from_user.first_name}</b>",
                                      reply_markup=kb_done, parse_mode="HTML", disable_web_page_preview=True)
 
-    msg = f"🚕 Курьер <b>{callback.from_user.first_name}</b> принял ваш заказ №{oid}!" if lang == 'ru' else f"🚕 Kuryer <b>{callback.from_user.first_name}</b> buyurtmani qabul qildi №{oid}!"
-    await bot.send_message(uid, msg, parse_mode="HTML")
+    msg = f"🚕 Курьер {callback.from_user.first_name} принял заказ №{oid}!" if lang == 'ru' else f"🚕 Kuryer {callback.from_user.first_name} buyurtmani qabul qildi №{oid}!"
+    await bot.send_message(uid, msg)
     await callback.answer()
 
 
@@ -133,12 +132,12 @@ async def done(callback: CallbackQuery):
     _, oid, uid, lang = callback.data.split("_")
     if oid in active_orders_lock: del active_orders_lock[oid]
 
-    await callback.message.edit_text(callback.message.html_text + "\n\n✅ <b>СТАТУС: ЗАВЕРШЕН</b>", reply_markup=None,
+    await callback.message.edit_text(callback.message.html_text + "\n✅ <b>СТАТУС: ЗАВЕРШЕН</b>", reply_markup=None,
                                      parse_mode="HTML")
 
-    msg = "🏁 Ваш заказ доставлен! Спасибо." if lang == 'ru' else "🏁 Buyurtmangiz yetkazildi! Rahmat."
+    msg = "🏁 Ваш заказ №" + oid + " доставлен!" if lang == 'ru' else "🏁 Buyurtmangiz №" + oid + " yetkazildi!"
     await bot.send_message(uid, msg)
-    await callback.answer("Заказ завершен")
+    await callback.answer("Завершено!")
 
 
 async def main(): await dp.start_polling(bot)
