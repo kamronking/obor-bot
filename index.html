@@ -7,6 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/imask"></script>
     <style>
         :root { --neon: #00e676; --dark: #0a0f1a; }
         body { font-family: -apple-system, sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; overflow: hidden; height: 100vh; }
@@ -56,8 +57,8 @@
         </div>
         <div id="step5" class="step">
             <h2 id="h-fin">Оформление</h2>
-            <input type="text" id="user-name">
-            <input type="tel" id="user-phone" value="+998">
+            <input type="text" id="user-name" oninput="validateName(this)">
+            <input type="tel" id="user-phone">
             <button id="btn-order" onclick="finish()">🚀 Заказать</button>
             <button class="sec" id="btn-back4" onclick="go(4)">Назад</button>
         </div>
@@ -78,9 +79,20 @@
         let order = { lang:'ru', type:'', what:'', lat_from:0, lon_from:0, lat_to:0, lon_to:0, price:7000 };
         let map, mapMode = '';
 
+        // Маска для телефона
+        const phoneMask = IMask(document.getElementById('user-phone'), {
+            mask: '+{998} (00) 000-00-00',
+            lazy: false
+        });
+
+        // Только буквы для имени
+        function validateName(input) {
+            input.value = input.value.replace(/[^a-zA-Zа-яА-ЯёЁ\s]/g, '');
+        }
+
         const texts = {
-            ru: { cat: "Тип заказа", what: "Что везем?", route: "Маршрут", fin: "Оформление", parcel: "📦 Посылка", food: "🛒 Продукты", back: "Назад", next: "Далее", order: "🚀 Заказать", name: "Ваше имя", placeholder: "Например: Ключи", confirm: "Подтвердить место", cancel: "Отмена" },
-            uz: { cat: "Buyurtma turi", what: "Nima olib boramiz?", route: "Yo'nalish", fin: "Ma'lumotlar", parcel: "📦 Posilka", food: "🛒 Mahsulotlar", back: "Orqaga", next: "Keyingisi", order: "🚀 Buyurtma berish", name: "Ismingiz", placeholder: "Masalan: Kalitlar", confirm: "Joyni tasdiqlash", cancel: "Bekor qilish" }
+            ru: { cat: "Тип заказа", what: "Что везем?", route: "Маршрут", fin: "Оформление", parcel: "📦 Посылка", food: "🛒 Продукты", back: "Назад", next: "Далее", order: "🚀 Заказать", name: "Ваше имя (буквы)", placeholder: "Например: Ключи", confirm: "Подтвердить место", cancel: "Отмена" },
+            uz: { cat: "Buyurtma turi", what: "Nima olib boramiz?", route: "Yo'nalish", fin: "Ma'lumotlar", parcel: "📦 Posilka", food: "🛒 Mahsulotlar", back: "Orqaga", next: "Keyingisi", order: "🚀 Buyurtma berish", name: "Ismingiz (harflar)", placeholder: "Masalan: Kalitlar", confirm: "Joyni tasdiqlash", cancel: "Bekor qilish" }
         };
 
         function applyLang(l) {
@@ -110,7 +122,7 @@
                 map = L.map('map').setView([40.48, 68.35], 14);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             }
-            setTimeout(() => { map.invalidateSize(); }, 200); // Исправляет серый экран карты
+            setTimeout(() => { map.invalidateSize(); }, 200);
             map.locate({setView: true, maxZoom: 16});
         }
         function closeMap() { document.getElementById('map-ui').style.display = 'none'; }
@@ -134,11 +146,14 @@
         }
 
         function finish() {
+            const rawPhone = phoneMask.unmaskedValue;
             order.what = document.getElementById('inp-what').value;
             order.name = document.getElementById('user-name').value;
-            order.phone = document.getElementById('user-phone').value;
-            if(!order.name || order.phone.length < 12) {
-                alert(order.lang === 'ru' ? "Заполните данные!" : "Ma'lumotlarni to'ldiring!"); return;
+            order.phone = "+" + rawPhone;
+
+            if(order.name.length < 2 || rawPhone.length < 12 || !order.what) {
+                alert(order.lang === 'ru' ? "Заполните все данные!" : "Ma'lumotlarni to'ldiring!");
+                return;
             }
             tg.sendData(JSON.stringify(order));
         }
