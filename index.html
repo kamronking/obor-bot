@@ -9,93 +9,102 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/imask"></script>
     <style>
-        :root { --neon: #00e676; --dark: #0a0f1a; }
+        :root { --neon: #00e676; --dark: #0a0f1a; --card-bg: rgba(30, 41, 59, 0.7); }
         body { font-family: -apple-system, sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; overflow: hidden; height: 100vh; }
+
         .card { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 92%; max-width: 400px;
-                background: rgba(255,255,255,0.1); backdrop-filter: blur(15px); padding: 25px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box; z-index: 10; }
+                background: var(--card-bg); backdrop-filter: blur(20px); padding: 25px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box; z-index: 10; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+
         .step { display: none; }
-        .step.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        h2 { text-align: center; color: var(--neon); text-transform: uppercase; margin: 0 0 20px 0; font-size: 20px; }
-        button { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--neon); color: black; font-weight: bold; font-size: 16px; margin: 5px 0; cursor: pointer; }
-        button.sec { background: #1e293b; color: white; }
-        input, select { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 12px; box-sizing: border-box; outline: none; font-size: 16px; }
-        #map-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; background: var(--dark); }
-        #map { width: 100%; height: 70%; }
-        .map-bar { height: 30%; padding: 20px; background: var(--dark); box-sizing: border-box; text-align: center; }
-        .price-badge { background: var(--neon); color: black; padding: 12px; border-radius: 12px; text-align: center; font-weight: 900; font-size: 20px; margin: 10px 0; }
-        .marker-fixed { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; font-size: 40px; pointer-events: none; }
+        .step.active { display: block; animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { text-align: center; color: var(--neon); text-transform: uppercase; margin: 0 0 20px 0; font-size: 18px; letter-spacing: 1px; }
+
+        button { width: 100%; padding: 18px; border-radius: 15px; border: none; background: var(--neon); color: black; font-weight: bold; font-size: 16px; margin: 8px 0; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.98); opacity: 0.8; }
+        button.sec { background: rgba(255,255,255,0.1); color: white; }
+
+        input, select { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 15px; box-sizing: border-box; outline: none; font-size: 16px; }
+
+        #map-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; }
+        #map { width: 100%; height: 100%; background: #000; }
+
+        /* Маркер по центру как в Yandex */
+        .center-marker { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1001; pointer-events: none; }
+        .center-marker img { width: 40px; }
+
+        .map-overlay { position: absolute; bottom: 20px; left: 5%; width: 90%; z-index: 1002; }
+        .price-tag { background: var(--neon); color: black; padding: 15px; border-radius: 15px; text-align: center; font-weight: 900; font-size: 22px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <div class="card" id="main-card">
         <div id="step1" class="step active">
-            <h2>Tilni tanlang / Язык</h2>
+            <h2>Выберите язык / Tilni tanlang</h2>
             <button onclick="applyLang('ru')">Русский</button>
             <button onclick="applyLang('uz')">O'zbekcha</button>
         </div>
 
         <div id="step2" class="step">
-            <h2 id="h-cat">Тип заказа</h2>
-            <button id="btn-parcel" onclick="setCat('parcel')">📦 Посылка</button>
-            <button id="btn-food" onclick="setCat('food')">🛒 Продукты</button>
-            <button class="sec" id="btn-back1" onclick="go(1)">Назад</button>
+            <h2 id="h-cat">Что доставляем?</h2>
+            <button onclick="setCat('parcel')">📦 Посылка</button>
+            <button onclick="setCat('food')">🛒 Продукты</button>
+            <button class="sec" onclick="go(1)">Назад</button>
         </div>
 
         <div id="step-weight" class="step">
-            <h2 id="h-weight">Вес посылки</h2>
+            <h2 id="h-weight">Вес</h2>
             <select id="inp-weight" onchange="calcPrice()">
                 <option value="1">До 5 кг (Бесплатно)</option>
-                <option value="6">6 кг (+2 000 сум)</option>
-                <option value="7">7 кг (+4 000 сум)</option>
-                <option value="8">8 кг (+6 000 сум)</option>
-                <option value="9">9 кг (+8 000 сум)</option>
-                <option value="10">10 кг (+10 000 сум)</option>
-                <option value="15">15 кг (+20 000 сум)</option>
-                <option value="20">20 кг (+30 000 сум)</option>
+                <option value="10">Свыше 5 кг (+2000/кг)</option>
             </select>
-            <button id="btn-next-w" onclick="go(3)">Далее</button>
+            <button onclick="go(3)">Далее</button>
             <button class="sec" onclick="go(2)">Назад</button>
         </div>
 
         <div id="step3" class="step">
-            <h2 id="h-what">Детали</h2>
-            <input type="text" id="inp-what">
-            <button id="btn-next3" onclick="go(4)">Далее</button>
-            <button class="sec" id="btn-back2" onclick="handleBackToWeight()">Назад</button>
+            <h2 id="h-what">Описание</h2>
+            <input type="text" id="inp-what" placeholder="Что везем?">
+            <button onclick="go(4)">Выбрать маршрут</button>
+            <button class="sec" onclick="handleBackToWeight()">Назад</button>
         </div>
 
         <div id="step4" class="step">
             <h2 id="h-route">Маршрут</h2>
-            <button id="b-from" class="sec" onclick="openMap('from')">📍 Точка А (Откуда)</button>
-            <button id="b-to" class="sec" onclick="openMap('to')">🏁 Точка Б (Куда)</button>
-            <div id="price-val" class="price-badge">7,000 UZS</div>
-            <button id="btn-next4" style="display:none" onclick="go(5)">Далее</button>
-            <button class="sec" id="btn-back3" onclick="go(3)">Назад</button>
+            <button id="b-from" class="sec" onclick="openMap('from')">📍 Откуда</button>
+            <button id="b-to" class="sec" onclick="openMap('to')">🏁 Куда</button>
+            <div id="price-val" class="price-tag">7,000 UZS</div>
+            <button id="btn-next4" style="display:none" onclick="go(5)">Оформить заказ</button>
+            <button class="sec" onclick="go(3)">Назад</button>
         </div>
 
         <div id="step5" class="step">
-            <h2 id="h-fin">Оформление</h2>
-            <input type="text" id="user-name" oninput="validateName(this)">
+            <h2 id="h-fin">Ваши данные</h2>
+            <input type="text" id="user-name" placeholder="Имя" oninput="validateName(this)">
             <input type="tel" id="user-phone">
-            <button id="btn-order" onclick="finish()">🚀 Заказать</button>
-            <button class="sec" id="btn-back4" onclick="go(4)">Назад</button>
+            <button id="btn-order" onclick="finish()">🚀 Подтвердить заказ</button>
+            <button class="sec" onclick="go(4)">Назад</button>
         </div>
     </div>
 
     <div id="map-ui">
-        <div class="marker-fixed">📍</div>
         <div id="map"></div>
-        <div class="map-bar">
-            <button id="btn-confirm" onclick="confirmLoc()">Подтвердить</button>
-            <button class="sec" id="btn-cancel" onclick="closeMap()">Отмена</button>
+        <div class="center-marker">
+            <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="marker">
+        </div>
+        <div class="map-overlay">
+            <button onclick="confirmLoc()">ПОДТВЕРДИТЬ МЕСТО</button>
+            <button class="sec" onclick="closeMap()">ОТМЕНА</button>
         </div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
+        tg.enableClosingConfirmation();
+
         let order = { lang:'ru', type:'', what:'', weight:1, lat_from:0, lon_from:0, lat_to:0, lon_to:0, price:7000 };
         let map, mapMode = '';
 
@@ -109,57 +118,26 @@
         }
 
         const texts = {
-            ru: {
-                cat: "Тип заказа", weight: "Вес посылки", what: "Что везем?", route: "Маршрут", fin: "Оформление",
-                parcel: "📦 Посылка", food: "🛒 Продукты", back: "Назад", next: "Далее", order: "🚀 Заказать",
-                name: "Ваше имя (буквы)", placeholder: "Например: Ключи", confirm: "Подтвердить", cancel: "Отмена"
-            },
-            uz: {
-                cat: "Buyurtma turi", weight: "Posilka vazni", what: "Nima olib boramiz?", route: "Yo'nalish", fin: "Ma'lumotlar",
-                parcel: "📦 Posilka", food: "🛒 Mahsulotlar", back: "Orqaga", next: "Keyingisi", order: "🚀 Buyurtma berish",
-                name: "Ismingiz (harflar)", placeholder: "Masalan: Kalitlar", confirm: "Tasdiqlash", cancel: "Bekor qilish"
-            }
+            ru: { cat: "Что доставляем?", weight: "Вес посылки", what: "Описание", route: "Маршрут", fin: "Оформление", confirm: "Подтвердить", back: "Назад" },
+            uz: { cat: "Nima yetkazamiz?", weight: "Posilka vazni", what: "Tavsif", route: "Yo'nalish", fin: "Buyurtma", confirm: "Tasdiqlash", back: "Orqaga" }
         };
 
         function applyLang(l) {
-            order.lang = l; const t = texts[l];
-            document.getElementById('h-cat').innerText = t.cat;
-            document.getElementById('h-weight').innerText = t.weight;
-            document.getElementById('h-what').innerText = t.what;
-            document.getElementById('h-route').innerText = t.route;
-            document.getElementById('h-fin').innerText = t.fin;
-            document.getElementById('btn-parcel').innerText = t.parcel;
-            document.getElementById('btn-food').innerText = t.food;
-            document.getElementById('inp-what').placeholder = t.placeholder;
-            document.getElementById('user-name').placeholder = t.name;
-            document.getElementById('btn-confirm').innerText = t.confirm;
-            document.getElementById('btn-cancel').innerText = t.cancel;
-            document.querySelectorAll("button.sec, #btn-back1, #btn-back2, #btn-back3, #btn-back4").forEach(b => b.innerText = t.back);
-            document.querySelectorAll("#btn-next-w, #btn-next3, #btn-next4").forEach(b => b.innerText = t.next);
-            document.getElementById('btn-order').innerText = t.order;
-
-            // Обновляем список веса на нужном языке
-            const wSelect = document.getElementById('inp-weight');
-            wSelect.options[0].text = l === 'ru' ? "До 5 кг (Бесплатно)" : "5 kg gacha (Bepul)";
-            for(let i=1; i<wSelect.options.length; i++) {
-                let kg = wSelect.options[i].value;
-                let add = (kg - 5) * 2000;
-                wSelect.options[i].text = `${kg} kg (+${add.toLocaleString()} sum)`;
-            }
-
+            order.lang = l;
+            document.getElementById('h-cat').innerText = texts[l].cat;
+            document.getElementById('h-weight').innerText = texts[l].weight;
+            document.getElementById('h-what').innerText = texts[l].what;
+            document.getElementById('h-route').innerText = texts[l].route;
+            document.getElementById('h-fin').innerText = texts[l].fin;
             go(2);
         }
 
         function setCat(c) {
             order.type = c;
-            if(c === 'parcel') go('weight');
-            else { order.weight = 0; go(3); }
+            if(c === 'parcel') go('weight'); else go(3);
         }
 
-        function handleBackToWeight() {
-            if(order.type === 'parcel') go('weight');
-            else go(2);
-        }
+        function handleBackToWeight() { if(order.type === 'parcel') go('weight'); else go(2); }
 
         function go(s) {
             document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
@@ -167,61 +145,47 @@
         }
 
         function openMap(m) {
-            mapMode = m; document.getElementById('map-ui').style.display = 'block';
+            mapMode = m;
+            document.getElementById('map-ui').style.display = 'block';
             if(!map) {
-                map = L.map('map').setView([40.48, 68.35], 14);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                map = L.map('map', { zoomControl: false }).setView([41.31, 69.24], 13);
+                // Темная тема карты (CartoDB DarkMatter)
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
             }
-            setTimeout(() => { map.invalidateSize(); }, 200);
-            map.locate({setView: true, maxZoom: 16});
+            map.invalidateSize();
         }
 
         function closeMap() { document.getElementById('map-ui').style.display = 'none'; }
-
-        function calcPrice() {
-            if(!order.lat_from || !order.lat_to) return;
-
-            let dist = L.latLng(order.lat_from, order.lon_from).distanceTo(L.latLng(order.lat_to, order.lon_to)) / 1000;
-            let basePrice = 7000 + (dist * 1000);
-
-            // Доплата за вес
-            let weight = parseInt(document.getElementById('inp-weight').value);
-            let weightSurcharge = 0;
-            if(order.type === 'parcel' && weight > 5) {
-                weightSurcharge = (weight - 5) * 2000;
-            }
-
-            order.price = Math.round(basePrice + weightSurcharge);
-            document.getElementById('price-val').innerText = order.price.toLocaleString() + " UZS";
-        }
 
         function confirmLoc() {
             let c = map.getCenter();
             if(mapMode === 'from') {
                 order.lat_from = c.lat; order.lon_from = c.lng;
-                document.getElementById('b-from').innerText = "✅ " + (order.lang === 'ru' ? "А выбрано" : "A tanlandi");
+                document.getElementById('b-from').innerText = "✅ Откуда: Готово";
             } else {
                 order.lat_to = c.lat; order.lon_to = c.lng;
-                document.getElementById('b-to').innerText = "✅ " + (order.lang === 'ru' ? "Б выбрано" : "B tanlandi");
+                document.getElementById('b-to').innerText = "✅ Куда: Готово";
             }
-            if(order.lat_from && order.lat_to) {
-                calcPrice();
-                document.getElementById('btn-next4').style.display = 'block';
-            }
+            calcPrice();
+            if(order.lat_from && order.lat_to) document.getElementById('btn-next4').style.display = 'block';
             closeMap();
         }
 
+        function calcPrice() {
+            if(!order.lat_from || !order.lat_to) return;
+            let dist = L.latLng(order.lat_from, order.lon_from).distanceTo(L.latLng(order.lat_to, order.lon_to)) / 1000;
+            let p = 7000 + (dist * 1200);
+            let w = parseInt(document.getElementById('inp-weight').value);
+            if(order.type === 'parcel' && w > 5) p += (w - 5) * 2000;
+            order.price = Math.round(p / 100) * 100;
+            document.getElementById('price-val').innerText = order.price.toLocaleString() + " UZS";
+        }
+
         function finish() {
-            const rawPhone = phoneMask.unmaskedValue;
             order.what = document.getElementById('inp-what').value;
             order.name = document.getElementById('user-name').value;
-            order.phone = "+" + rawPhone;
-            order.weight = document.getElementById('inp-weight').value;
-
-            if(order.name.length < 2 || rawPhone.length < 12 || !order.what) {
-                alert(order.lang === 'ru' ? "Заполните все данные!" : "Ma'lumotlarni to'ldiring!");
-                return;
-            }
+            order.phone = phoneMask.value;
+            if(!order.name || order.phone.includes('_')) return alert("Заполните данные!");
             tg.sendData(JSON.stringify(order));
         }
     </script>
