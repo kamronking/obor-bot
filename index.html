@@ -10,141 +10,162 @@
     <script src="https://unpkg.com/imask"></script>
     <style>
         :root { --neon: #00e676; --bg: #0f172a; --card: #1e293b; }
-        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: -apple-system, sans-serif; color: white; overflow: hidden; }
-
-        #map-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; display: none; }
-        #map { width: 100%; height: 100%; }
-
-        .map-ui { position: absolute; z-index: 2100; width: 100%; pointer-events: none; }
-        .map-ui * { pointer-events: auto; }
-        .search-bar { top: 15px; padding: 0 15px; box-sizing: border-box; }
-        .search-bar input { width: 100%; padding: 14px; border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-size: 16px; }
-        .center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 40px; pointer-events: none; z-index: 2100; }
-        .map-confirm-btn { bottom: 30px; padding: 0 20px; box-sizing: border-box; }
-
-        .app-container { padding: 20px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow-y: auto; }
+        body, html { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, sans-serif; color: white; overflow-x: hidden; }
+        .app-container { padding: 20px; box-sizing: border-box; min-height: 100vh; display: flex; flex-direction: column; }
         .step { display: none; }
-        .step.active { display: block; }
+        .step.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        h2 { font-size: 22px; text-align: center; margin-bottom: 25px; }
-        button { width: 100%; padding: 18px; border-radius: 16px; border: none; font-size: 16px; font-weight: 700; margin-bottom: 12px; cursor: pointer; }
+        h2 { font-size: 22px; text-align: center; margin-bottom: 20px; }
+        button { width: 100%; padding: 18px; border-radius: 16px; border: none; font-size: 16px; font-weight: 700; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
         .btn-main { background: var(--neon); color: black; }
         .btn-sec { background: rgba(255,255,255,0.1); color: white; }
-        .btn-map { background: white; color: black; border: 1px solid #ddd; }
+        .btn-loc { background: white; color: black; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; }
 
-        input { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #334155; background: var(--card); color: white; margin-bottom: 12px; box-sizing: border-box; }
-        .summary { background: var(--card); padding: 15px; border-radius: 15px; line-height: 1.6; }
+        input { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #334155; background: var(--card); color: white; margin-bottom: 12px; box-sizing: border-box; font-size: 16px; outline: none; }
+        input:focus { border-color: var(--neon); }
+        .summary { background: var(--card); padding: 15px; border-radius: 15px; margin-bottom: 20px; line-height: 1.5; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Карта */
+        #map-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; display: none; }
+        #map { width: 100%; height: 100%; }
+        .center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 40px; z-index: 2100; pointer-events: none; }
+        .map-confirm { position: absolute; bottom: 30px; width: 100%; padding: 0 20px; box-sizing: border-box; z-index: 2100; }
     </style>
 </head>
 <body>
 
     <div id="map-overlay">
-        <div class="map-ui search-bar"><input type="text" id="map-search" placeholder="Поиск улицы..." oninput="smartSearch(this.value)"></div>
         <div class="center-pin">📍</div>
         <div id="map"></div>
-        <div class="map-ui map-confirm-btn">
-            <button class="btn-main" onclick="confirmPoint()">Подтвердить место</button>
-            <button class="btn-sec" onclick="closeMap()">Отмена</button>
+        <div class="map-confirm">
+            <button class="btn-main" id="t-map-ok" onclick="confirmPoint()">OK</button>
         </div>
     </div>
 
     <div class="app-container">
         <div id="step1" class="step active">
-            <h2>Tilni tanlang / Язык</h2>
+            <h2>Tilni tanlang / Выберите язык</h2>
             <button class="btn-main" onclick="setLang('ru')">🇷🇺 Русский</button>
             <button class="btn-main" onclick="setLang('uz')">🇺🇿 O'zbekcha</button>
         </div>
 
         <div id="step2" class="step">
-            <h2>Тип заказа</h2>
-            <button class="btn-main" onclick="setCat('parcel')">📦 Посылка</button>
-            <button class="btn-main" onclick="setCat('food')">🛒 Продукты</button>
-            <button class="btn-sec" onclick="go(1)">Назад</button>
+            <h2 id="t-cat">Что заказываем?</h2>
+            <button class="btn-main" id="t-btn-parcel" onclick="setCat('parcel')">📦 Посылка</button>
+            <button class="btn-main" id="t-btn-food" onclick="setCat('food')">🛒 Продукты</button>
+            <button class="btn-sec" id="t-back1" onclick="go(1)">Назад</button>
         </div>
 
         <div id="step3" class="step">
-            <h2>Данные</h2>
-            <input type="text" id="inp-what" placeholder="Что везем?">
-            <input type="text" id="user-name" placeholder="Ваше имя">
+            <h2 id="t-form-title">Детали</h2>
+            <input type="text" id="inp-what">
+            <input type="text" id="user-name">
             <input type="tel" id="user-phone">
-            <div id="parcel-extra" style="display:none">
-                <input type="text" id="rec-name" placeholder="Имя получателя">
+
+            <div id="parcel-fields" style="display:none">
+                <input type="text" id="rec-name">
                 <input type="tel" id="rec-phone">
             </div>
-            <button class="btn-main" onclick="go(4)">Далее</button>
-            <button class="btn-sec" onclick="go(2)">Назад</button>
+
+            <div id="food-location" style="display:none">
+                <button class="btn-loc" id="t-btn-loc" onclick="openMap()">📍 Отправить локацию</button>
+                <p id="loc-status" style="color:var(--neon); text-align:center; display:none; margin:0 0 10px; font-weight:bold;">✅ OK</p>
+            </div>
+
+            <button class="btn-main" id="t-btn-next" onclick="toSummary()">Оформить заказ</button>
+            <button class="btn-sec" id="t-back2" onclick="go(2)">Назад</button>
         </div>
 
         <div id="step4" class="step">
-            <h2>Маршрут</h2>
-            <button id="b-from" class="btn-map" onclick="openMap('from')">📍 Откуда забрать</button>
-            <button id="b-to" class="btn-map" onclick="openMap('to')">🏁 Куда везти</button>
-            <button id="btn-final" class="btn-main" style="display:none" onclick="showSummary()">Продолжить</button>
-            <button class="btn-sec" onclick="go(3)">Назад</button>
-        </div>
-
-        <div id="step5" class="step">
-            <h2>Проверка</h2>
+            <h2 id="t-check">Проверьте данные</h2>
             <div id="summary-info" class="summary"></div>
-            <button class="btn-main" onclick="sendToBot()">🚀 ОТПРАВИТЬ ЗАКАЗ</button>
-            <button class="btn-sec" onclick="go(4)">Исправить</button>
+            <button class="btn-main" id="t-btn-send" onclick="submitOrder()">🚀 Отправить</button>
+            <button class="btn-sec" id="t-back3" onclick="go(3)">Назад</button>
         </div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
-        let order = { lang:'ru', type:'', lat_from:null, lon_from:null, lat_to:null, lon_to:null, price:7000 };
-        let map, mapMode = '';
+        let order = { lang:'ru', type:'', lat:null, lon:null };
+        let map;
 
         const m1 = IMask(document.getElementById('user-phone'), { mask: '+{998} (00) 000-00-00' });
         const m2 = IMask(document.getElementById('rec-phone'), { mask: '+{998} (00) 000-00-00' });
 
-        function go(s) {
-            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-            document.getElementById('step' + s).classList.add('active');
+        const i18n = {
+            ru: {
+                cat: "Что заказываем?", parcel: "📦 Посылка", food: "🛒 Продукты", back: "Назад",
+                form: "Детали заказа", what: "Что привезти?", name: "Ваше имя", rec_name: "Имя получателя",
+                loc: "📍 Указать адрес доставки", check: "Проверка данных", send: "🚀 Отправить заказ", ok: "Локация выбрана"
+            },
+            uz: {
+                cat: "Nima buyurtma berasiz?", parcel: "📦 Posilka", food: "🛒 Mahsulotlar", back: "Orqaga",
+                form: "Buyurtma tafsilotlari", what: "Nima olib kelish kerak?", name: "Ismingiz", rec_name: "Oluvchi ismi",
+                loc: "📍 Yetkazib berish manzili", check: "Ma'lumotlarni tekshiring", send: "🚀 Buyurtma berish", ok: "Manzil tanlandi"
+            }
+        };
+
+        function setLang(l) {
+            order.lang = l;
+            const t = i18n[l];
+            document.getElementById('t-cat').innerText = t.cat;
+            document.getElementById('t-btn-parcel').innerText = t.parcel;
+            document.getElementById('t-btn-food').innerText = t.food;
+            document.querySelectorAll('[id^="t-back"]').forEach(b => b.innerText = t.back);
+            document.getElementById('t-form-title').innerText = t.form;
+            document.getElementById('inp-what').placeholder = t.what;
+            document.getElementById('user-name').placeholder = t.name;
+            document.getElementById('rec-name').placeholder = t.rec_name;
+            document.getElementById('t-btn-loc').innerText = t.loc;
+            document.getElementById('t-check').innerText = t.check;
+            document.getElementById('t-btn-send').innerText = t.send;
+            document.getElementById('loc-status').innerText = "✅ " + t.ok;
+            go(2);
         }
 
-        function setLang(l) { order.lang = l; go(2); }
         function setCat(c) {
             order.type = c;
-            document.getElementById('parcel-extra').style.display = c === 'parcel' ? 'block' : 'none';
+            document.getElementById('parcel-fields').style.display = (c === 'parcel') ? 'block' : 'none';
+            document.getElementById('food-location').style.display = (c === 'food') ? 'block' : 'none';
             go(3);
         }
 
-        function openMap(mode) {
-            mapMode = mode;
+        function openMap() {
             document.getElementById('map-overlay').style.display = 'block';
             if (!map) {
-                map = L.map('map', { zoomControl: false }).setView([40.4897, 68.7848], 15);
+                map = L.map('map', {zoomControl: false}).setView([40.4897, 68.7848], 15);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
             }
             setTimeout(() => map.invalidateSize(), 200);
         }
 
-        function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
-
         function confirmPoint() {
             let c = map.getCenter();
-            if(mapMode === 'from') { order.lat_from = c.lat; order.lon_from = c.lng; document.getElementById('b-from').innerText = "✅ Откуда: OK"; }
-            else { order.lat_to = c.lat; order.lon_to = c.lng; document.getElementById('b-to').innerText = "✅ Куда: OK"; }
-            if(order.lat_from && order.lat_to) document.getElementById('btn-final').style.display = 'block';
-            closeMap();
+            order.lat = c.lat; order.lon = c.lng;
+            document.getElementById('map-overlay').style.display = 'none';
+            document.getElementById('loc-status').style.display = 'block';
         }
 
-        function smartSearch(v) {
-            if(v.length < 3) return;
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=Гулистан ${v}&limit=1`)
-            .then(r => r.json()).then(res => { if(res[0]) map.panTo([res[0].lat, res[0].lon]); });
+        function toSummary() {
+            const name = document.getElementById('user-name').value;
+            if(!name || m1.value.length < 18) return alert("Заполните данные!");
+            if(order.type === 'food' && !order.lat) return alert("Укажите локацию!");
+
+            let text = `<b>${order.type === 'parcel' ? '📦 Posilka' : '🛒 Mahsulot'}</b><br>` +
+                       `📝 ${document.getElementById('inp-what').value}<br>` +
+                       `👤 ${name}<br>📞 ${m1.value}`;
+
+            if(order.type === 'parcel') {
+                text += `<br>👤 Rec: ${document.getElementById('rec-name').value}<br>📞 ${m2.value}`;
+            }
+
+            document.getElementById('summary-info').innerHTML = text;
+            go(4);
         }
 
-        function showSummary() {
-            let info = `<b>Тип:</b> ${order.type}<br><b>Что:</b> ${document.getElementById('inp-what').value}<br><b>Имя:</b> ${document.getElementById('user-name').value}<br><b>Тел:</b> ${m1.value}`;
-            document.getElementById('summary-info').innerHTML = info;
-            go(5);
-        }
-
-        function sendToBot() {
+        function submitOrder() {
             let data = {
                 ...order,
                 name: document.getElementById('user-name').value,
@@ -152,9 +173,14 @@
                 what: document.getElementById('inp-what').value,
                 rec_name: document.getElementById('rec-name').value || '-',
                 rec_phone: m2.value || '-',
-                price: 7000 // Передаем цену явно
+                price: 7000
             };
             tg.sendData(JSON.stringify(data));
+        }
+
+        function go(s) {
+            document.querySelectorAll('.step').forEach(e => e.classList.remove('active'));
+            document.getElementById('step' + s).classList.add('active');
         }
     </script>
 </body>
