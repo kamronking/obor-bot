@@ -26,15 +26,15 @@ sheet = client_sheet.open("Obor-bot-orders").worksheet("Orders")
 active_orders_lock = {}
 cancelled_orders = set()
 
-# Текст тарифов (вынесен в переменную для удобства)
-# Исправленный текст тарифов
+# ТЕКСТ ТАРИФОВ (БЕЗ ОПАСНЫХ СИМВОЛОВ)
 PRICES_TEXT = (
     "💳 <b>TARIFLAR / ТАРИФЫ:</b>\n\n"
     "🛒 <b>Mahsulotlar / Продукты:</b>\n"
-    "• &lt; 200.000 so'm → <b>23.000 so'm</b>\n"
-    "• &gt; 200.000 so'm → <b>15%</b>\n\n"
+    "• 200.000 so'mgacha — <b>23.000 so'm</b>\n"
+    "• 200.000 so'mdan yuqori — <b>15%</b>\n\n"
     "📦 <b>Posilka / Посылка:</b>\n"
-    "• Max 10kg → <b>23.000 so'm</b>"
+    "• 10 kg gacha — <b>23.000 so'm</b>\n"
+    "<i>(Faqat 10 kg gacha bo'lgan yuklar qabul qilinadi)</i>"
 )
 
 
@@ -58,7 +58,6 @@ def update_sheet_status(order_id, new_status):
 
 @dp.message(Command("start"))
 async def start(message: Message):
-    # ОБНОВЛЕННОЕ НИЖНЕЕ МЕНЮ
     kb = ReplyKeyboardMarkup(keyboard=[
         [KeyboardButton(text="🚀 Заказать / Buyurtma berish",
                         web_app=WebAppInfo(url="https://kamronking.github.io/obor-bot/"))],
@@ -68,13 +67,12 @@ async def start(message: Message):
     await message.answer("🇷🇺 Добро пожаловать в OBOR!\n🇺🇿 OBOR-ga xush kelibsiz!", reply_markup=kb)
 
 
-# НОВЫЙ ОБРАБОТЧИК ДЛЯ КНОПКИ ЦЕН
 @dp.message(F.text.contains("Цены") | F.text.contains("Tariflar"))
 async def prices_handler(message: Message):
+    # Теперь здесь обычный текст без знаков < >, ошибка не повторится
     await message.answer(PRICES_TEXT, parse_mode="HTML")
 
 
-# ОБРАБОТКА КНОПКИ ПОДДЕРЖКИ
 @dp.message(F.text.contains("Поддержка") | F.text.contains("Support"))
 async def support_handler(message: Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="👨‍💻 Написать админу", url=SUPPORT_URL)]])
@@ -88,8 +86,9 @@ async def handle_webapp(message: Message):
     lang = data.get('lang', 'ru')
     save_to_sheets(oid, data)
 
-    type_str = "📦 ПОСЫЛКА (до 10кг)" if data['type'] == 'parcel' else "🛒 ПРОДУКТЫ"
-    price_info = "💳 Тариф: 23.000 сум" if data['type'] == 'parcel' else "💳 Тариф: 23к (<200к) / 15% (>200к)"
+    type_str = "📦 ПОСЫЛКА" if data['type'] == 'parcel' else "🛒 ПРОДУКТЫ"
+    # Описание тарифа для курьера тоже словами
+    price_info = "💳 Тариф: 23.000 сум" if data['type'] == 'parcel' else "💳 Тариф: 23к (до 200к) / 15% (свыше 200к)"
 
     details = f"📝 Что: {data['what']}\n👤 Клиент: {data['name']} ({data['phone']})\n{price_info}"
     if data['type'] == 'parcel': details += f"\n👤 Кому: {data['rec_name']} ({data['rec_phone']})"
