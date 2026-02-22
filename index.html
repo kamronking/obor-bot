@@ -12,18 +12,26 @@
         :root { --neon: #00e676; --bg: #0f172a; --card: #1e293b; --err: #ff5252; }
         body, html { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, sans-serif; color: white; height: 100vh; overflow: hidden; }
         .app-container { height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
+
         #step1 { display: none; flex-direction: column; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
         #step1.active { display: flex; }
-        .step { display: none; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+
+        .step { display: none; padding: 20px; box-sizing: border-box; overflow-y: auto; height: 100%; }
         .step.active:not(#step1) { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        h2 { font-size: 22px; text-align: center; margin-bottom: 25px; font-weight: 800; }
-        button { width: 100%; padding: 18px; border-radius: 16px; border: none; font-size: 16px; font-weight: 700; margin-bottom: 12px; cursor: pointer; }
+
+        h2 { font-size: 24px; text-align: center; margin-bottom: 25px; font-weight: 800; }
+        button { width: 100%; padding: 18px; border-radius: 16px; border: none; font-size: 16px; font-weight: 700; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
         .btn-main { background: var(--neon); color: black; }
         .btn-sec { background: rgba(255,255,255,0.1); color: white; }
-        input { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #334155; background: var(--card); color: white; margin-bottom: 12px; box-sizing: border-box; font-size: 16px; outline: none; }
-        input.invalid { border-color: var(--err); }
+
+        input { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #334155; background: var(--card); color: white; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; outline: none; transition: 0.3s; }
+        input.invalid { border-color: var(--err); background: rgba(255, 82, 82, 0.05); }
+        input::placeholder { color: #94a3b8; }
+
         .summary { background: var(--card); padding: 15px; border-radius: 15px; margin-bottom: 20px; line-height: 1.6; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* КАРТА */
         #map-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; display: none; background: #fff; }
         #map { width: 100%; height: 100%; }
         .gps-btn { position: absolute; bottom: 120px; right: 20px; z-index: 2200; background: white; color: black; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 26px; border: none; }
@@ -99,20 +107,19 @@
                 form: "Детали заказа", what: "Что привезти?", name: "Ваше имя", phone: "Ваш номер телефона",
                 rec_name: "Имя получателя", rec_phone: "Номер получателя",
                 loc: "📍 Указать адрес доставки", check: "Проверка данных", send: "🚀 Отправить заказ",
-                ok: "Локация выбрана", next: "Оформить заказ", err_fill: "Пожалуйста, заполните все поля!"
+                ok: "Локация выбрана", next: "Далее", err_fill: "Заполните все поля!"
             },
             uz: {
                 cat: "Nima buyurtma berasiz?", parcel: "📦 Posilka", food: "🛒 Mahsulotlar", back: "Orqaga",
                 form: "Buyurtma tafsilotlari", what: "Nima olib kelish kerak?", name: "Ismingiz", phone: "Telefon raqamingiz",
                 rec_name: "Oluvchi ismi", rec_phone: "Oluvchi telefoni",
                 loc: "📍 Yetkazib berish manzili", check: "Ma'lumotlarni tekshiring", send: "🚀 Buyurtma berish",
-                ok: "Manzil tanlandi", next: "Rasmiylashtirish", err_fill: "Barcha maydonlarni to'ldiring!"
+                ok: "Manzil tanlandi", next: "Davom etish", err_fill: "Barcha maydonlarni to'ldiring!"
             }
         };
 
         function setLang(l) {
-            order.lang = l;
-            const t = i18n[l];
+            order.lang = l; const t = i18n[l];
             document.getElementById('t-cat').innerText = t.cat;
             document.getElementById('t-btn-parcel').innerText = t.parcel;
             document.getElementById('t-btn-food').innerText = t.food;
@@ -139,35 +146,23 @@
         }
 
         function validateAndNext() {
-            const what = document.getElementById('inp-what');
-            const name = document.getElementById('user-name');
-            const phone = document.getElementById('user-phone');
-            const recName = document.getElementById('rec-name');
-            const recPhone = document.getElementById('rec-phone');
-
+            const what = document.getElementById('inp-what'), name = document.getElementById('user-name'), phone = document.getElementById('user-phone');
             let isValid = true;
             [what, name].forEach(el => {
                 if(!el.value.trim()) { el.classList.add('invalid'); isValid = false; }
                 else { el.classList.remove('invalid'); }
             });
-
             if(m1.value.length < 18) { phone.classList.add('invalid'); isValid = false; }
             else { phone.classList.remove('invalid'); }
 
             if(order.type === 'parcel') {
-                if(!recName.value.trim()) { recName.classList.add('invalid'); isValid = false; }
-                if(m2.value.length < 18) { recPhone.classList.add('invalid'); isValid = false; }
+                const rn = document.getElementById('rec-name'), rp = document.getElementById('rec-phone');
+                if(!rn.value.trim()) { rn.classList.add('invalid'); isValid = false; }
+                if(m2.value.length < 18) { rp.classList.add('invalid'); isValid = false; }
             }
+            if(order.type === 'food' && !order.lat) { alert(i18n[order.lang].loc); isValid = false; }
 
-            if(order.type === 'food' && !order.lat) {
-                alert(i18n[order.lang].loc);
-                isValid = false;
-            }
-
-            if(!isValid) {
-                tg.HapticFeedback.notificationOccurred('error');
-                return;
-            }
+            if(!isValid) { tg.HapticFeedback.notificationOccurred('error'); return; }
             toSummary();
         }
 
@@ -196,25 +191,14 @@
         }
 
         function toSummary() {
-            let typeName = order.lang === 'ru' ? (order.type === 'parcel' ? 'Посылка' : 'Продукты') : (order.type === 'parcel' ? 'Posilka' : 'Mahsulotlar');
-            let text = `<b>${typeName}</b><br>` +
-                       `📝 ${document.getElementById('inp-what').value}<br>` +
-                       `👤 ${document.getElementById('user-name').value}<br>` +
-                       `📞 ${m1.value}`;
+            let typeName = order.lang === 'ru' ? (order.type === 'parcel' ? '📦 Посылка' : '🛒 Продукты') : (order.type === 'parcel' ? '📦 Posilka' : '🛒 Mahsulotlar');
+            let text = `<b>${typeName}</b><br>📝 ${document.getElementById('inp-what').value}<br>👤 ${document.getElementById('user-name').value}<br>📞 ${m1.value}`;
             document.getElementById('summary-info').innerHTML = text;
             go(4);
         }
 
         function submitOrder() {
-            let data = {
-                ...order,
-                name: document.getElementById('user-name').value,
-                phone: m1.value,
-                what: document.getElementById('inp-what').value,
-                rec_name: document.getElementById('rec-name').value || '-',
-                rec_phone: m2.value || '-',
-                price: 7000
-            };
+            let data = { ...order, name: document.getElementById('user-name').value, phone: m1.value, what: document.getElementById('inp-what').value, rec_name: document.getElementById('rec-name').value || '-', rec_phone: m2.value || '-', price: 7000 };
             tg.sendData(JSON.stringify(data));
         }
 
