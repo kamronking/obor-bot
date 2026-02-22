@@ -9,144 +9,131 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/imask"></script>
     <style>
-        :root { --neon: #00e676; --yandex-bg: #f3f3f7; }
+        :root { --neon: #00e676; --yandex-bg: #f3f3f7; --dark-blue: #0f172a; }
 
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background: #000; font-family: -apple-system, sans-serif;
+            background: var(--dark-blue); font-family: -apple-system, sans-serif; color: white;
         }
 
-        /* Контейнер карты - теперь он под всеми элементами */
-        #map {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%; z-index: 1;
+        /* КОНТЕЙНЕР КАРТЫ (Скрыт по умолчанию) */
+        #map-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2000; display: none; background: white;
+        }
+        #map { width: 100%; height: 100%; }
+
+        /* Элементы внутри карты */
+        .map-ui { position: absolute; z-index: 2100; width: 100%; pointer-events: none; }
+        .map-ui * { pointer-events: auto; }
+
+        .search-bar { top: 15px; padding: 0 15px; box-sizing: border-box; }
+        .search-bar input {
+            width: 100%; padding: 14px; border-radius: 12px; border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); font-size: 16px;
         }
 
-        /* Центрированный пин Yandex Style */
         .center-pin {
             position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -100%);
-            z-index: 10; pointer-events: none; display: none;
-            text-align: center;
-        }
-        .pin-icon { font-size: 45px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3)); }
-
-        /* Кнопки управления на карте */
-        .map-controls {
-            position: absolute; right: 15px; top: 80px;
-            display: flex; flex-direction: column; gap: 10px; z-index: 10;
-        }
-        .map-btn {
-            background: white; width: 45px; height: 45px; border-radius: 12px;
-            display: none; align-items: center; justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 20px;
+            transform: translate(-50%, -100%); font-size: 40px;
         }
 
-        /* Поиск сверху */
-        .search-container {
-            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-            width: 90%; z-index: 20; display: none;
-        }
-        .search-input {
-            width: 100%; padding: 14px 20px; border-radius: 15px; border: none;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1); font-size: 16px; outline: none;
+        .map-confirm-btn {
+            bottom: 30px; padding: 0 20px;
         }
 
-        /* Карточка заказа - всегда снизу */
-        .card {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: white; border-radius: 25px 25px 0 0;
-            z-index: 100; box-shadow: 0 -5px 30px rgba(0,0,0,0.1);
-            padding: 20px 20px 35px; box-sizing: border-box;
-            max-height: 90vh; overflow-y: auto;
+        /* ГЛАВНАЯ КАРТОЧКА (АНКЕТА) */
+        .app-container {
+            padding: 20px; display: flex; flex-direction: column; min-height: 100vh;
+            box-sizing: border-box;
         }
 
         .step { display: none; }
-        .step.active { display: block; animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .step.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        h2 { font-size: 20px; font-weight: 700; margin: 0 0 15px; text-align: center; color: #222; }
+        h2 { font-size: 22px; margin-bottom: 20px; text-align: center; }
 
         button {
-            width: 100%; padding: 16px; border-radius: 14px; border: none;
-            font-size: 16px; font-weight: 600; margin-bottom: 10px; cursor: pointer;
+            width: 100%; padding: 18px; border-radius: 16px; border: none;
+            font-size: 16px; font-weight: 700; margin-bottom: 12px; cursor: pointer;
+            transition: 0.2s;
         }
-        .btn-primary { background: var(--neon); color: #000; }
-        .btn-secondary { background: var(--yandex-bg); color: #222; }
+        .btn-main { background: var(--neon); color: black; }
+        .btn-sec { background: rgba(255,255,255,0.1); color: white; }
+        .btn-map { background: #fff; color: #000; border: 1px solid #ddd; }
 
-        input, select {
-            width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #eee;
-            background: var(--yandex-bg); margin-bottom: 10px; box-sizing: border-box; font-size: 16px;
+        input {
+            width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #334155;
+            background: #1e293b; color: white; margin-bottom: 12px; box-sizing: border-box;
         }
 
-        .summary-box { background: var(--yandex-bg); padding: 15px; border-radius: 15px; margin-bottom: 15px; font-size: 14px; }
+        .summary { background: #1e293b; padding: 15px; border-radius: 15px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="map"></div>
-
-    <div class="search-container" id="search-box">
-        <input type="text" class="search-input" placeholder="Найти улицу в Гулистане..." oninput="smartSearch(this.value)">
+    <div id="map-overlay">
+        <div class="map-ui search-bar">
+            <input type="text" placeholder="Поиск улицы в Гулистане..." oninput="smartSearch(this.value)">
+        </div>
+        <div class="center-pin">📍</div>
+        <div id="map"></div>
+        <div class="map-ui map-confirm-btn">
+            <button class="btn-main" onclick="confirmPoint()">Подтвердить это место</button>
+            <button class="btn-sec" onclick="closeMap()">Отмена</button>
+        </div>
     </div>
 
-    <div class="center-pin" id="main-pin">
-        <div class="pin-icon">📍</div>
-    </div>
+    <div class="app-container">
 
-    <div class="map-controls">
-        <div class="map-btn" id="loc-btn" onclick="findMe()">🎯</div>
-    </div>
-
-    <div class="card">
         <div id="step1" class="step active">
-            <h2>Tilni tanlang / Язык</h2>
-            <button class="btn-primary" onclick="setLang('ru')">🇷🇺 Русский</button>
-            <button class="btn-primary" onclick="setLang('uz')">🇺🇿 O'zbekcha</button>
+            <h2>Выберите язык / Til tanlang</h2>
+            <button class="btn-main" onclick="setLang('ru')">🇷🇺 Русский</button>
+            <button class="btn-main" onclick="setLang('uz')">🇺🇿 O'zbekcha</button>
         </div>
 
         <div id="step2" class="step">
-            <h2 id="h-cat">Тип заказа</h2>
-            <button class="btn-primary" onclick="setCat('parcel')">📦 Посылка</button>
-            <button class="btn-primary" onclick="setCat('food')">🛒 Продукты</button>
-            <button class="btn-secondary" onclick="go(1)">Назад</button>
+            <h2>Что везем?</h2>
+            <button class="btn-main" onclick="setCat('parcel')">📦 Посылка</button>
+            <button class="btn-main" onclick="setCat('food')">🛒 Продукты</button>
+            <button class="btn-sec" onclick="go(1)">Назад</button>
         </div>
 
         <div id="step3" class="step">
-            <h2>Детали</h2>
-            <input type="text" id="inp-what" placeholder="Что везем?">
+            <h2>Данные заказа</h2>
+            <input type="text" id="inp-what" placeholder="Что именно везем?">
             <input type="text" id="user-name" placeholder="Ваше имя">
             <input type="tel" id="user-phone">
 
             <div id="parcel-extra" style="display:none">
+                <hr style="opacity:0.1; margin: 15px 0;">
                 <input type="text" id="rec-name" placeholder="Имя получателя">
                 <input type="tel" id="rec-phone">
             </div>
 
-            <button class="btn-primary" onclick="validateStep3()">Далее</button>
-            <button class="btn-secondary" onclick="go(2)">Назад</button>
+            <button class="btn-main" onclick="go(4)">Далее</button>
+            <button class="btn-sec" onclick="go(2)">Назад</button>
         </div>
 
         <div id="step4" class="step">
             <h2>Маршрут</h2>
-            <button id="b-from" class="btn-secondary" onclick="openMap('from')">📍 Откуда</button>
-            <button id="b-to" class="btn-secondary" onclick="openMap('to')">🏁 Куда</button>
-            <button id="b-done" class="btn-primary" style="display:none" onclick="go(5)">Оформить</button>
-            <button class="btn-secondary" onclick="go(3)">Назад</button>
-        </div>
+            <button id="b-from" class="btn-map" onclick="openMap('from')">📍 Откуда забрать (A)</button>
+            <button id="b-to" class="btn-map" onclick="openMap('to')">🏁 Куда везти (B)</button>
 
-        <div id="step-confirm" class="step">
-            <h2>Выберите место</h2>
-            <button class="btn-primary" onclick="savePoint()">Подтвердить точку</button>
-            <button class="btn-secondary" onclick="go(4)">Отмена</button>
+            <div id="order-ready" style="display:none">
+                <button class="btn-main" onclick="showSummary()">Оформить заказ</button>
+            </div>
+            <button class="btn-sec" onclick="go(3)">Назад</button>
         </div>
 
         <div id="step5" class="step">
-            <h2>Проверка</h2>
-            <div id="summary" class="summary-box"></div>
-            <button class="btn-primary" onclick="finish()">🚀 ОТПРАВИТЬ</button>
-            <button class="btn-secondary" onclick="go(4)">Назад</button>
+            <h2>Проверка данных</h2>
+            <div id="summary-info" class="summary"></div>
+            <button class="btn-main" onclick="sendToBot()">🚀 ОТПРАВИТЬ КУРЬЕРУ</button>
+            <button class="btn-sec" onclick="go(4)">Назад</button>
         </div>
+
     </div>
 
     <script>
@@ -165,13 +152,7 @@
 
         function go(s) {
             document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-            let sid = (typeof s === 'string') ? 'step-'+s : 'step'+s;
-            document.getElementById(sid).classList.add('active');
-
-            const isConfirm = (s === 'confirm');
-            document.getElementById('main-pin').style.display = isConfirm ? 'block' : 'none';
-            document.getElementById('search-box').style.display = isConfirm ? 'block' : 'none';
-            document.getElementById('loc-btn').style.display = isConfirm ? 'block' : 'none';
+            document.getElementById('step' + s).classList.add('active');
         }
 
         function setLang(l) { order.lang = l; go(2); }
@@ -181,38 +162,48 @@
             go(3);
         }
 
-        function validateStep3() {
-            if(!document.getElementById('user-name').value || m1.value.length < 18) return alert("Заполните данные!");
-            go(4);
+        // КАРТА
+        function openMap(mode) {
+            mapMode = mode;
+            document.getElementById('map-overlay').style.display = 'block';
+            if (!map) initMap();
+            map.invalidateSize(); // Чтобы карта прорисовывалась корректно
         }
 
-        function openMap(m) { mapMode = m; go('confirm'); }
-        function findMe() { map.locate({setView: true, maxZoom: 16}); }
+        function closeMap() {
+            document.getElementById('map-overlay').style.display = 'none';
+        }
 
-        function savePoint() {
-            let c = map.getCenter();
-            if(mapMode === 'from') {
-                order.lat_from = c.lat; order.lon_from = c.lng;
-                document.getElementById('b-from').innerText = "✅ Откуда: OK";
+        function confirmPoint() {
+            let center = map.getCenter();
+            if (mapMode === 'from') {
+                order.lat_from = center.lat; order.lon_from = center.lng;
+                document.getElementById('b-from').innerText = "✅ A: Выбрано";
             } else {
-                order.lat_to = c.lat; order.lon_to = c.lng;
-                document.getElementById('b-to').innerText = "✅ Куда: OK";
+                order.lat_to = center.lat; order.lon_to = center.lng;
+                document.getElementById('b-to').innerText = "✅ B: Выбрано";
             }
-            if(order.lat_from && order.lat_to) {
-                document.getElementById('b-done').style.display = 'block';
-                showSummary();
+
+            if (order.lat_from && order.lat_to) {
+                document.getElementById('order-ready').style.display = 'block';
             }
-            go(4);
+            closeMap();
         }
 
+        function smartSearch(val) {
+            if(val.length < 3) return;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=Гулистан ${val}&limit=1`)
+            .then(r => r.json()).then(res => { if(res[0]) map.panTo([res[0].lat, res[0].lon]); });
+        }
+
+        // ФИНАЛ
         function showSummary() {
-            let res = `📦 <b>${order.type === 'parcel' ? 'Посылка' : 'Продукты'}</b><br>` +
-                      `👤 ${document.getElementById('user-name').value}<br>` +
-                      `📞 ${m1.value}`;
-            document.getElementById('summary').innerHTML = res;
+            let html = `<b>Тип:</b> ${order.type}<br><b>Имя:</b> ${document.getElementById('user-name').value}<br><b>Тел:</b> ${m1.value}`;
+            document.getElementById('summary-info').innerHTML = html;
+            go(5);
         }
 
-        function finish() {
+        function sendToBot() {
             let data = {
                 ...order,
                 name: document.getElementById('user-name').value,
@@ -224,13 +215,7 @@
             tg.sendData(JSON.stringify(data));
         }
 
-        function smartSearch(val) {
-            if(val.length < 3) return;
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=Гулистан ${val}&limit=1`)
-            .then(r => r.json()).then(res => { if(res[0]) map.panTo([res[0].lat, res[0].lon]); });
-        }
-
-        initMap();
+        initMap(); // Инициализация сразу, чтобы не тормозило потом
     </script>
 </body>
 </html>
