@@ -16,6 +16,8 @@ ADMIN_IDS = [int(id.strip()) for id in os.getenv('ADMIN_IDS', '').split(',') if 
 
 # Хранилище принятых заказов
 active_orders_lock = {}
+# НОВОЕ: Хранилище отмененных заказов
+cancelled_orders = set()
 
 
 @dp.message(Command("start"))
@@ -33,7 +35,6 @@ async def handle_webapp(message: Message):
     oid = f"{datetime.now().strftime('%H%M')}-{random.randint(10, 99)}"
     lang = data.get('lang', 'ru')
 
-    # Текст заказа для курьера
     type_str = "📦 ПОСЫЛКА / POSILKA" if data['type'] == 'parcel' else "🛒 ПРОДУКТЫ / MAHSULOTLAR"
     details = f"📝 Что: {data['what']}\n👤 Клиент: {data['name']} ({data['phone']})"
     if data['type'] == 'parcel':
@@ -50,7 +51,6 @@ async def handle_webapp(message: Message):
     for aid in ADMIN_IDS:
         await bot.send_message(aid, text_adm, reply_markup=kb_adm, parse_mode="HTML", disable_web_page_preview=True)
 
-    # Сообщение клиенту с кнопкой отмены
     resp = "✅ Отправлено!" if lang == 'ru' else "✅ Yuborildi!"
     kb_cancel = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="❌ ОТМЕНИТЬ / BEKOR QILISH", callback_data=f"can_{oid}_{lang}")]])
@@ -60,6 +60,15 @@ async def handle_webapp(message: Message):
 @dp.callback_query(F.data.startswith("acc_"))
 async def accept_order(callback: CallbackQuery):
     _, oid, uid, lang = callback.data.split("_")
+
+    # 1. ПРОВЕРКА НА ОТМЕНУ (Чтобы курьер не взял отмененный заказ)
+    if oid in cancelled_orders:
+        msg = "❌ Заказ уже отменен клиентом!" if lang == 'ru' else "❌ Buyurtma mijoz tomonidan bekor qilingan!"
+        await callback.message.edit_text(callback.message.html_text + f"\n\n🚫 <b>ОТМЕНЕНО КЛИЕНТОМ</b>",
+                                         reply_markup=None)
+        return await callback.answer(msg, show_alert=True)
+
+    # 2. ПРОВЕРКА НА ЗАНЯТОСТЬ
     if oid in active_orders_lock:
         return await callback.answer("❌ Уже занято!", show_alert=True)
 
@@ -75,12 +84,17 @@ async def accept_order(callback: CallbackQuery):
 @dp.callback_query(F.data.startswith("can_"))
 async def cancel_order(callback: CallbackQuery):
     _, oid, lang = callback.data.split("_")
+
     if oid in active_orders_lock:
         msg = "❌ Нельзя отменить! Курьер уже принял заказ." if lang == 'ru' else "❌ Bekor qilib bo'lmaydi! Kuryer qabul qildi."
         return await callback.answer(msg, show_alert=True)
 
+    # Добавляем в список отмененных
+    cancelled_orders.add(oid)
+
     await callback.message.edit_text("❌ Заказ отменен / Buyurtma bekor qilindi")
     for aid in ADMIN_IDS:
+        # Уведомляем админов и меняем им текст сообщения (опционально)
         await bot.send_message(aid, f"🚫 Заказ #{oid} отменен клиентом.")
 
 
