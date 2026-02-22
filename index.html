@@ -1,249 +1,143 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OBOR Delivery</title>
+    <title>OBOR</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/imask"></script>
     <style>
         :root { --neon: #00e676; --dark: #0a0f1a; --card-bg: #1e293b; }
-        body { font-family: -apple-system, sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; overflow: hidden; height: 100vh; }
-
-        /* Исправленный 3D контейнер: теперь карта не обрезается */
-        #map-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
-            perspective: 1200px; background: var(--dark);
-        }
-        #map {
-            width: 100%; height: 120%;
-            transform: rotateX(20deg) translateY(-10%);
-            transform-origin: bottom;
-        }
-
-        /* Поиск: всегда сверху */
-        .search-container {
-            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-            width: 90%; z-index: 2000; display: none;
-        }
-        .search-input {
-            width: 100%; padding: 15px; border-radius: 14px; border: 2px solid var(--neon);
-            font-size: 16px; outline: none; background: white; color: black;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-        #search-results { background: white; color: black; border-radius: 0 0 14px 14px; max-height: 200px; overflow-y: auto; }
-        .search-item { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; cursor: pointer; }
-
-        /* Центрирование пина */
-        .center-marker {
-            position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 1500; pointer-events: none; font-size: 50px; display: none;
-            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));
-        }
-
-        /* Кнопка локации */
-        .locate-btn {
-            position: absolute; top: 85px; right: 15px; z-index: 1500;
-            background: white; color: black; border-radius: 12px; width: 50px; height: 50px;
-            display: none; align-items: center; justify-content: center; font-size: 24px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
-        }
-
-        /* Карточка как на скриншоте */
-        .card {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: var(--card-bg); padding: 25px 20px 40px 20px;
-            border-radius: 30px 30px 0 0; z-index: 1000;
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.8); box-sizing: border-box;
-        }
-
-        .step { display: none; }
-        .step.active { display: block; animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-        h2 { font-size: 22px; margin: 0 0 20px 0; text-align: center; font-weight: 800; color: #fff; }
-
-        /* Кнопки с иконками */
-        button {
-            width: 100%; padding: 18px; border-radius: 18px; border: none;
-            background: var(--neon); color: black; font-weight: 800; font-size: 17px;
-            margin: 10px 0; display: flex; align-items: center; justify-content: center; gap: 12px;
-            transition: 0.2s;
-        }
-        button:active { transform: scale(0.96); opacity: 0.9; }
+        body { font-family: sans-serif; background: var(--dark); color: white; margin: 0; padding: 0; overflow: hidden; }
+        #map { position: fixed; top: 0; width: 100%; height: 100%; z-index: 1; }
+        .card { position: fixed; bottom: 0; width: 100%; background: var(--card-bg); padding: 20px; border-radius: 25px 25px 0 0; z-index: 1000; box-sizing: border-box; max-height: 80vh; overflow-y: auto; }
+        .step { display: none; } .step.active { display: block; }
+        button { width: 100%; padding: 15px; border-radius: 15px; border: none; background: var(--neon); color: black; font-weight: bold; margin: 8px 0; font-size: 16px; }
         button.sec { background: rgba(255,255,255,0.1); color: white; }
-
-        input, select {
-            width: 100%; padding: 16px; border-radius: 15px; border: 1px solid #334155;
-            background: #0f172a; color: white; margin-bottom: 15px; box-sizing: border-box; font-size: 16px;
-        }
-
-        .summary-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; margin-bottom: 15px; border-left: 5px solid var(--neon); }
+        input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 10px; box-sizing: border-box; }
+        .summary { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; font-size: 14px; line-height: 1.6; border-left: 4px solid var(--neon); }
+        .pin { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); z-index: 500; font-size: 40px; pointer-events: none; display: none; }
     </style>
 </head>
 <body>
-
-    <div id="map-container">
-        <div id="map"></div>
-    </div>
-
-    <div class="search-container" id="search-box">
-        <input type="text" class="search-input" id="addr-search" placeholder="Qidiruv / Поиск..." oninput="searchAddress(this.value)">
-        <div id="search-results"></div>
-    </div>
-
-    <div class="center-marker" id="main-pin">📍</div>
-    <div class="locate-btn" id="loc-btn" onclick="locateMe()">🎯</div>
+    <div id="map"></div>
+    <div class="pin" id="main-pin">📍</div>
 
     <div class="card">
         <div id="step1" class="step active">
             <h2>Tilni tanlang / Язык</h2>
-            <button onclick="applyLang('ru')">🇷🇺 Русский</button>
-            <button onclick="applyLang('uz')">🇺🇿 O'zbekcha</button>
+            <button onclick="setLang('ru')">🇷🇺 Русский</button>
+            <button onclick="setLang('uz')">🇺🇿 O'zbekcha</button>
         </div>
 
         <div id="step2" class="step">
             <h2 id="h-cat">Тип заказа</h2>
             <button onclick="setCat('parcel')">📦 Посылка</button>
             <button onclick="setCat('food')">🛒 Продукты</button>
-            <button class="sec" onclick="go(1)">⬅️ Назад</button>
-        </div>
-
-        <div id="step-weight" class="step">
-            <h2 id="h-weight">Вес посылки</h2>
-            <select id="inp-weight" onchange="calcPrice()">
-                <option value="5">До 5 кг (Стандарт)</option>
-                <option value="10">10 кг (+10 000 сум)</option>
-                <option value="20">20 кг (+30 000 сум)</option>
-            </select>
-            <button onclick="go(3)">Далее ➡️</button>
-            <button class="sec" onclick="go(2)">Назад</button>
         </div>
 
         <div id="step3" class="step">
-            <h2 id="h-what">Что везем?</h2>
-            <input type="text" id="inp-what" placeholder="Название товара...">
-            <button onclick="go(4)">Выбрать маршрут 📍</button>
-            <button class="sec" onclick="handleBackToWeight()">Назад</button>
+            <h2 id="h-data">Данные</h2>
+            <input type="text" id="inp-what" placeholder="Что привезти? / Nima olib kelish kerak?">
+            <input type="text" id="user-name" placeholder="Ваше имя / Ismingiz">
+            <input type="tel" id="user-phone" placeholder="+998">
+
+            <div id="parcel-extra" style="display:none">
+                <hr style="opacity:0.1">
+                <input type="text" id="rec-name" placeholder="Имя получателя / Kim oladi?">
+                <input type="tel" id="rec-phone" placeholder="Телефон получателя">
+            </div>
+            <button onclick="validateData()">Далее / Keyingi</button>
         </div>
 
         <div id="step4" class="step">
-            <h2 id="h-route">Маршрут</h2>
-            <button id="b-from" class="sec" onclick="openMapMode('from')">📍 Откуда забрать</button>
-            <button id="b-to" class="sec" onclick="openMapMode('to')">🏁 Куда везти</button>
-            <div id="price-val" style="text-align:center; font-weight:900; color:var(--neon); font-size:24px; margin:15px;">7,000 UZS</div>
-            <button id="btn-next4" style="display:none" onclick="showSummary()">Оформить заказ ✅</button>
-            <button class="sec" onclick="go(3)">Назад</button>
-        </div>
-
-        <div id="step-map-confirm" class="step">
-            <h2 id="h-instr">Выберите место на карте</h2>
-            <button onclick="confirmPoint()">✅ Подтвердить</button>
-            <button class="sec" onclick="go(4)">Отмена</button>
+            <h2 id="h-map">Выберите место</h2>
+            <button id="btn-from" onclick="startMap('from')">📍 Откуда (A)</button>
+            <button id="btn-to" onclick="startMap('to')">🏁 Куда (B)</button>
+            <button id="btn-map-confirm" style="display:none" onclick="go(5)">Готово / Tayyor</button>
         </div>
 
         <div id="step5" class="step">
-            <h2 id="h-fin">Оформление</h2>
-            <div id="summary-data" class="summary-box"></div>
-            <input type="text" id="user-name" placeholder="Ваше имя">
-            <input type="tel" id="user-phone">
-            <button onclick="finish()">🚀 ОТПРАВИТЬ ЗАКАЗ</button>
-            <button class="sec" onclick="go(4)">Назад</button>
+            <h2 id="h-check">Проверка</h2>
+            <div id="check-data" class="summary"></div>
+            <button onclick="sendOrder()">✅ Всё правильно / Hammasi to'g'ri</button>
+            <button class="sec" onclick="go(2)">📝 Заполнить заново / Qaytadan</button>
         </div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
-        tg.expand();
-        let order = { lang:'ru', type:'', what:'', weight:5, lat_from:0, lon_from:0, lat_to:0, lon_to:0, price:7000 };
-        let map, mapMode = '', searchTimeout;
+        let order = { lang:'ru', type:'', what:'', name:'', phone:'', rec_name:'-', rec_phone:'-', lat_from:0, lon_from:0, lat_to:0, lon_to:0, price:7000 };
+        let map, mapMode = '';
 
-        const phoneMask = IMask(document.getElementById('user-phone'), { mask: '+{998} (00) 000-00-00' });
+        IMask(document.getElementById('user-phone'), { mask: '+{998} (00) 000-00-00' });
+        IMask(document.getElementById('rec-phone'), { mask: '+{998} (00) 000-00-00' });
 
-        function initMap() {
-            map = L.map('map', {zoomControl: false}).setView([40.4897, 68.7848], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png').addTo(map);
+        function setLang(l) { order.lang = l; go(2); }
+        function setCat(c) {
+            order.type = c;
+            document.getElementById('parcel-extra').style.display = c === 'parcel' ? 'block' : 'none';
+            go(3);
         }
-        initMap();
-
-        function applyLang(l) { order.lang = l; go(2); }
-        function setCat(c) { order.type = c; if(c==='parcel') go('weight'); else go(3); }
-        function handleBackToWeight() { if(order.type==='parcel') go('weight'); else go(2); }
 
         function go(s) {
             document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-            let targetId = typeof s === 'string' ? 'step-'+s : 'step'+s;
-            document.getElementById(targetId).classList.add('active');
-
-            const isMap = (s === 'map-confirm');
-            document.getElementById('search-box').style.display = isMap ? 'block' : 'none';
-            document.getElementById('main-pin').style.display = isMap ? 'block' : 'none';
-            document.getElementById('loc-btn').style.display = isMap ? 'block' : 'none';
+            document.getElementById('step' + s).classList.add('active');
+            document.getElementById('main-pin').style.display = 'none';
         }
 
-        function openMapMode(m) { mapMode = m; go('map-confirm'); }
-        function locateMe() { map.locate({setView: true, maxZoom: 16}); }
-
-        function confirmPoint() {
-            let c = map.getCenter();
-            if(mapMode === 'from') {
-                order.lat_from = c.lat; order.lon_from = c.lng;
-                document.getElementById('b-from').innerText = "✅ ОТКУДА: ОК";
-                document.getElementById('b-from').style.border = "1px solid var(--neon)";
-            } else {
-                order.lat_to = c.lat; order.lon_to = c.lng;
-                document.getElementById('b-to').innerText = "✅ КУДА: ОК";
-                document.getElementById('b-to').style.border = "1px solid var(--neon)";
+        function validateData() {
+            order.what = document.getElementById('inp-what').value;
+            order.name = document.getElementById('user-name').value;
+            order.phone = document.getElementById('user-phone').value;
+            if(order.type === 'parcel') {
+                order.rec_name = document.getElementById('rec-name').value;
+                order.rec_phone = document.getElementById('rec-phone').value;
             }
-            if(order.lat_from && order.lat_to) { calcPrice(); document.getElementById('btn-next4').style.display='flex'; }
+            if(!order.what || !order.name || order.phone.length < 10) return alert("Заполните поля!");
             go(4);
         }
 
-        function searchAddress(q) {
-            clearTimeout(searchTimeout);
-            if(q.length < 3) return;
-            searchTimeout = setTimeout(() => {
-                // Ограничение поиска Гулистаном
-                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&viewbox=68.7,40.4,68.9,40.6&bounded=1&limit=5`)
-                .then(r => r.json()).then(data => {
-                    let res = document.getElementById('search-results');
-                    res.innerHTML = '';
-                    data.forEach(i => {
-                        let d = document.createElement('div');
-                        d.className = 'search-item';
-                        d.innerText = i.display_name.split(',').slice(0,3).join(',');
-                        d.onclick = () => { map.setView([i.lat, i.lon], 17); res.innerHTML = ''; };
-                        res.appendChild(d);
-                    });
-                });
-            }, 500);
+        function startMap(mode) {
+            mapMode = mode;
+            document.getElementById('main-pin').style.display = 'block';
+            document.querySelectorAll('.step').forEach(el => el.style.display = 'none');
+
+            // Кнопка подтверждения на самой карте
+            let confBtn = document.createElement('button');
+            confBtn.id = 'temp-btn';
+            confBtn.style.position = 'fixed'; confBtn.style.bottom = '20px'; confBtn.style.zIndex = '2000';
+            confBtn.innerText = "📍 Подтвердить это место";
+            confBtn.onclick = () => {
+                let center = map.getCenter();
+                if(mapMode === 'from') { order.lat_from = center.lat; order.lon_from = center.lng; document.getElementById('btn-from').innerText = "✅ A выбрано"; }
+                else { order.lat_to = center.lat; order.lon_to = center.lng; document.getElementById('btn-to').innerText = "✅ B выбрано"; }
+                confBtn.remove();
+                document.querySelectorAll('.step').forEach(el => el.style.display = '');
+                go(4);
+                if(order.lat_from && order.lat_to) document.getElementById('btn-map-confirm').style.display = 'block';
+            };
+            document.body.appendChild(confBtn);
         }
 
-        function calcPrice() {
-            if(!order.lat_from || !order.lat_to) return;
-            let dist = L.latLng(order.lat_from, order.lon_from).distanceTo(L.latLng(order.lat_to, order.lon_to)) / 1000;
-            let p = 7000 + (dist * 1800);
-            let w = parseInt(document.getElementById('inp-weight').value || 5);
-            if(order.type === 'parcel' && w > 5) p += (w-5)*2000;
-            order.price = Math.round(p/500)*500;
-            document.getElementById('price-val').innerText = order.price.toLocaleString() + " UZS";
+        function initMap() {
+            map = L.map('map', {zoomControl: false}).setView([40.4897, 68.7848], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png').addTo(map);
         }
 
         function showSummary() {
-            const isRu = order.lang === 'ru';
-            document.getElementById('summary-data').innerHTML = `<b>${isRu?'Сумма':'Narxi'}:</b> ${order.price.toLocaleString()} UZS<br><b>${isRu?'Что':'Nima'}:</b> ${document.getElementById('inp-what').value}`;
-            go(5);
+            let txt = `<b>Тип:</b> ${order.type === 'parcel' ? 'Посылка' : 'Продукты'}<br>` +
+                      `<b>Что:</b> ${order.what}<br><b>Имя:</b> ${order.name}<br><b>Тел:</b> ${order.phone}`;
+            if(order.type === 'parcel') txt += `<br><b>Получатель:</b> ${order.rec_name} (${order.rec_phone})`;
+            document.getElementById('check-data').innerHTML = txt;
         }
 
-        function finish() {
-            order.name = document.getElementById('user-name').value;
-            order.phone = phoneMask.value;
-            order.what = document.getElementById('inp-what').value;
-            if(!order.name || order.phone.length < 18) return alert('Заполните данные!');
-            tg.sendData(JSON.stringify(order));
-        }
+        function sendOrder() { tg.sendData(JSON.stringify(order)); }
+
+        initMap();
+        document.getElementById('btn-map-confirm').onclick = () => { showSummary(); go(5); };
     </script>
 </body>
 </html>
