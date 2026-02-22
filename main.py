@@ -21,17 +21,25 @@ SUPPORT_URL = "https://t.me/твой_ник"  # ЗАМЕНИ НА СВОЙ НИ�
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
 client_sheet = gspread.authorize(creds)
-# Открываем таблицу и лист Orders
 sheet = client_sheet.open("Obor-bot-orders").worksheet("Orders")
 
 active_orders_lock = {}
 cancelled_orders = set()
 
+# Текст тарифов (вынесен в переменную для удобства)
+PRICES_TEXT = (
+    "💳 <b>TARIFLAR / ТАРИФЫ:</b>\n\n"
+    "🛒 <b>Mahsulotlar / Продукты:</b>\n"
+    "• < 200.000 so'm → <b>23.000 so'm</b>\n"
+    "• > 200.000 so'm → <b>15%</b>\n\n"
+    "📦 <b>Posilka / Посылка:</b>\n"
+    "• Max 10kg → <b>23.000 so'm</b>"
+)
+
 
 def save_to_sheets(order_id, data):
     try:
         now = datetime.now().strftime('%d.%m %H:%M')
-        # Колонки: A:order_id, B:date, C:name, D:phone, E:items, F:status, G:address
         row = [order_id, now, data.get('name'), data.get('phone'), data.get('what'), "🆕 НОВЫЙ",
                f"{data.get('lat')}, {data.get('lon')}" if data.get('lat') else "Посылка"]
         sheet.append_row(row)
@@ -49,31 +57,27 @@ def update_sheet_status(order_id, new_status):
 
 @dp.message(Command("start"))
 async def start(message: Message):
+    # ОБНОВЛЕННОЕ НИЖНЕЕ МЕНЮ
     kb = ReplyKeyboardMarkup(keyboard=[
         [KeyboardButton(text="🚀 Заказать / Buyurtma berish",
                         web_app=WebAppInfo(url="https://kamronking.github.io/obor-bot/"))],
-        [KeyboardButton(text="🆘 Поддержка / Support")]
+        [KeyboardButton(text="💳 Цены / Tariflar"), KeyboardButton(text="🆘 Поддержка / Support")]
     ], resize_keyboard=True)
 
-    welcome_text = (
-        "🇷🇺 <b>Добро пожаловать в OBOR!</b>\n\n"
-        "💳 <b>Тарифы:</b>\n"
-        "• Продукты до 200к — 23.000 сум\n"
-        "• Продукты свыше 200к — 15% от чека\n"
-        "• Посылки до 10кг — 23.000 сум\n\n"
-        "🇺🇿 <b>OBOR-ga xush kelibsiz!</b>\n\n"
-        "💳 <b>Tariflar:</b>\n"
-        "• Mahsulotlar 200к gacha — 23.000 so'm\n"
-        "• Mahsulotlar 200к dan oshsa — chekdan 15%\n"
-        "• Posilkalar 10kg gacha — 23.000 so'm"
-    )
-    await message.answer(welcome_text, reply_markup=kb, parse_mode="HTML")
+    await message.answer("🇷🇺 Добро пожаловать в OBOR!\n🇺🇿 OBOR-ga xush kelibsiz!", reply_markup=kb)
 
 
+# НОВЫЙ ОБРАБОТЧИК ДЛЯ КНОПКИ ЦЕН
+@dp.message(F.text.contains("Цены") | F.text.contains("Tariflar"))
+async def prices_handler(message: Message):
+    await message.answer(PRICES_TEXT, parse_mode="HTML")
+
+
+# ОБРАБОТКА КНОПКИ ПОДДЕРЖКИ
 @dp.message(F.text.contains("Поддержка") | F.text.contains("Support"))
 async def support_handler(message: Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="👨‍💻 Написать админу", url=SUPPORT_URL)]])
-    await message.answer("🇷🇺 Напишите администратору по любым вопросам:", reply_markup=kb)
+    await message.answer("🇷🇺 По вопросам поддержки:\n🇺🇿 Qo'llab-quvvatlash uchun:", reply_markup=kb)
 
 
 @dp.message(F.web_app_data)
@@ -117,7 +121,6 @@ async def accept_order(callback: CallbackQuery):
 
     active_orders_lock[oid] = callback.from_user.first_name
     update_sheet_status(oid, f"🚕 В ПУТИ ({callback.from_user.first_name})")
-
     kb_done = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🏁 ДОСТАВИЛ / YETKAZDIM", callback_data=f"done_{oid}_{uid}_{lang}")]])
     await callback.message.edit_text(callback.message.html_text + f"\n\n🤝 <b>ВЗЯЛ: {callback.from_user.first_name}</b>",
@@ -130,10 +133,8 @@ async def cancel_order(callback: CallbackQuery):
     _, oid, lang = callback.data.split("_")
     if oid in active_orders_lock:
         return await callback.answer("Нельзя отменить! Курьер уже в пути.", show_alert=True)
-
     cancelled_orders.add(oid)
     update_sheet_status(oid, "❌ ОТМЕНЕН КЛИЕНТОМ")
-
     await callback.message.edit_text("❌ Заказ отменен / Buyurtma bekor qilindi")
     for aid in ADMIN_IDS: await bot.send_message(aid, f"🚫 Заказ #{oid} отменен клиентом.")
 
