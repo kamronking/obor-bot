@@ -15,7 +15,7 @@ load_dotenv()
 bot = Bot(token=os.getenv('BOT_TOKEN'))
 dp = Dispatcher()
 ADMIN_IDS = [int(id.strip()) for id in os.getenv('ADMIN_IDS', '').split(',') if id.strip()]
-SUPPORT_URL = "https://t.me/твой_ник"  # ЗАМЕНИ НА СВОЙ НИК
+SUPPORT_URL = "https://t.me/obor_bot_support"  # ЗАМЕНИ НА СВОЙ НИК
 
 # Настройка Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
