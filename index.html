@@ -12,26 +12,19 @@
         :root { --neon: #00e676; --bg: #0f172a; --card: #1e293b; --err: #ff5252; }
         body, html { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, sans-serif; color: white; height: 100vh; overflow: hidden; }
         .app-container { height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
-
         #step1 { display: none; flex-direction: column; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
         #step1.active { display: flex; }
-
         .step { display: none; padding: 20px; box-sizing: border-box; overflow-y: auto; height: 100%; }
         .step.active:not(#step1) { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
         h2 { font-size: 24px; text-align: center; margin-bottom: 25px; font-weight: 800; }
         button { width: 100%; padding: 18px; border-radius: 16px; border: none; font-size: 16px; font-weight: 700; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
         .btn-main { background: var(--neon); color: black; }
         .btn-sec { background: rgba(255,255,255,0.1); color: white; }
-
-        input { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #334155; background: var(--card); color: white; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; outline: none; transition: 0.3s; }
+        input { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #334155; background: var(--card); color: white; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; outline: none; }
         input.invalid { border-color: var(--err); background: rgba(255, 82, 82, 0.05); }
-        input::placeholder { color: #94a3b8; }
-
         .summary { background: var(--card); padding: 15px; border-radius: 15px; margin-bottom: 20px; line-height: 1.6; border: 1px solid rgba(255,255,255,0.1); }
-
-        /* КАРТА */
+        .price-box { font-size: 14px; border-left: 4px solid var(--neon); background: rgba(0,230,118,0.1); padding: 12px; border-radius: 0 12px 12px 0; margin-bottom: 20px; }
         #map-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; display: none; background: #fff; }
         #map { width: 100%; height: 100%; }
         .gps-btn { position: absolute; bottom: 120px; right: 20px; z-index: 2200; background: white; color: black; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 26px; border: none; }
@@ -40,14 +33,11 @@
     </style>
 </head>
 <body>
-
     <div id="map-overlay">
         <button class="gps-btn" onclick="useGPS()">🎯</button>
         <div class="center-pin">📍</div>
         <div id="map"></div>
-        <div class="map-confirm">
-            <button class="btn-main" onclick="confirmPoint()">OK</button>
-        </div>
+        <div class="map-confirm"><button class="btn-main" onclick="confirmPoint()">OK</button></div>
     </div>
 
     <div class="app-container">
@@ -58,6 +48,13 @@
         </div>
 
         <div id="step2" class="step">
+            <div class="price-box">
+                <b>💰 Tariflar / Тарифы:</b><br>
+                🛒 <b>Mahsulotlar / Продукты:</b><br>
+                • < 200.000 → <b>23.000 so'm</b><br>
+                • > 200.000 → <b>15%</b><br>
+                📦 <b>Posilka (max 10kg):</b> <b>23.000 so'm</b>
+            </div>
             <h2 id="t-cat">Что заказываем?</h2>
             <button class="btn-main" id="t-btn-parcel" onclick="setCat('parcel')">📦 Посылка</button>
             <button class="btn-main" id="t-btn-food" onclick="setCat('food')">🛒 Продукты</button>
@@ -69,17 +66,14 @@
             <input type="text" id="inp-what">
             <input type="text" id="user-name">
             <input type="tel" id="user-phone">
-
             <div id="parcel-fields" style="display:none">
                 <input type="text" id="rec-name">
                 <input type="tel" id="rec-phone">
             </div>
-
             <div id="food-location" style="display:none">
                 <button class="btn-sec" style="background:#fff; color:#000" id="t-btn-loc" onclick="openMap()">📍 Отправить локацию</button>
                 <p id="loc-status" style="color:var(--neon); text-align:center; display:none; margin:0 0 10px; font-weight:bold;">✅ OK</p>
             </div>
-
             <button class="btn-main" id="t-btn-next" onclick="validateAndNext()">Далее</button>
             <button class="btn-sec" id="t-back2" onclick="go(2)">Назад</button>
         </div>
@@ -102,20 +96,8 @@
         const m2 = IMask(document.getElementById('rec-phone'), { mask: '+{998} (00) 000-00-00' });
 
         const i18n = {
-            ru: {
-                cat: "Что заказываем?", parcel: "📦 Посылка", food: "🛒 Продукты", back: "Назад",
-                form: "Детали заказа", what: "Что привезти?", name: "Ваше имя", phone: "Ваш номер телефона",
-                rec_name: "Имя получателя", rec_phone: "Номер получателя",
-                loc: "📍 Указать адрес доставки", check: "Проверка данных", send: "🚀 Отправить заказ",
-                ok: "Локация выбрана", next: "Далее", err_fill: "Заполните все поля!"
-            },
-            uz: {
-                cat: "Nima buyurtma berasiz?", parcel: "📦 Posilka", food: "🛒 Mahsulotlar", back: "Orqaga",
-                form: "Buyurtma tafsilotlari", what: "Nima olib kelish kerak?", name: "Ismingiz", phone: "Telefon raqamingiz",
-                rec_name: "Oluvchi ismi", rec_phone: "Oluvchi telefoni",
-                loc: "📍 Yetkazib berish manzili", check: "Ma'lumotlarni tekshiring", send: "🚀 Buyurtma berish",
-                ok: "Manzil tanlandi", next: "Davom etish", err_fill: "Barcha maydonlarni to'ldiring!"
-            }
+            ru: { cat: "Что заказываем?", parcel: "📦 Посылка", food: "🛒 Продукты", back: "Назад", form: "Детали заказа", what: "Что привезти?", name: "Ваше имя", phone: "Ваш номер телефона", rec_name: "Имя получателя", rec_phone: "Номер получателя", loc: "📍 Указать адрес доставки", check: "Проверка данных", send: "🚀 Отправить заказ", ok: "Локация выбрана", next: "Далее" },
+            uz: { cat: "Nima buyurtma berasiz?", parcel: "📦 Posilka", food: "🛒 Mahsulotlar", back: "Orqaga", form: "Buyurtma tafsilotlari", what: "Nima olib kelish kerak?", name: "Ismingiz", phone: "Telefon raqamingiz", rec_name: "Oluvchi ismi", rec_phone: "Oluvchi telefoni", loc: "📍 Yetkazib berish manzili", check: "Ma'lumotlarni tekshiring", send: "🚀 Buyurtma berish", ok: "Manzil tanlandi", next: "Davom etish" }
         };
 
         function setLang(l) {
@@ -154,14 +136,12 @@
             });
             if(m1.value.length < 18) { phone.classList.add('invalid'); isValid = false; }
             else { phone.classList.remove('invalid'); }
-
             if(order.type === 'parcel') {
                 const rn = document.getElementById('rec-name'), rp = document.getElementById('rec-phone');
                 if(!rn.value.trim()) { rn.classList.add('invalid'); isValid = false; }
                 if(m2.value.length < 18) { rp.classList.add('invalid'); isValid = false; }
             }
             if(order.type === 'food' && !order.lat) { alert(i18n[order.lang].loc); isValid = false; }
-
             if(!isValid) { tg.HapticFeedback.notificationOccurred('error'); return; }
             toSummary();
         }
@@ -177,15 +157,12 @@
 
         function useGPS() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    map.setView([pos.coords.latitude, pos.coords.longitude], 17);
-                }, () => alert("GPS error."));
+                navigator.geolocation.getCurrentPosition((pos) => { map.setView([pos.coords.latitude, pos.coords.longitude], 17); });
             }
         }
 
         function confirmPoint() {
-            let c = map.getCenter();
-            order.lat = c.lat; order.lon = c.lng;
+            let c = map.getCenter(); order.lat = c.lat; order.lon = c.lng;
             document.getElementById('map-overlay').style.display = 'none';
             document.getElementById('loc-status').style.display = 'block';
         }
@@ -198,7 +175,7 @@
         }
 
         function submitOrder() {
-            let data = { ...order, name: document.getElementById('user-name').value, phone: m1.value, what: document.getElementById('inp-what').value, rec_name: document.getElementById('rec-name').value || '-', rec_phone: m2.value || '-', price: 7000 };
+            let data = { ...order, name: document.getElementById('user-name').value, phone: m1.value, what: document.getElementById('inp-what').value, rec_name: document.getElementById('rec-name').value || '-', rec_phone: m2.value || '-' };
             tg.sendData(JSON.stringify(data));
         }
 

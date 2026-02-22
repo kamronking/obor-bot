@@ -15,13 +15,13 @@ load_dotenv()
 bot = Bot(token=os.getenv('BOT_TOKEN'))
 dp = Dispatcher()
 ADMIN_IDS = [int(id.strip()) for id in os.getenv('ADMIN_IDS', '').split(',') if id.strip()]
-# ССЫЛКА НА ТВОЙ ПРОФИЛЬ (Замени на свой ник без @)
-SUPPORT_URL = "https://t.me/obor_bot_support"
+SUPPORT_URL = "https://t.me/твой_ник"  # ЗАМЕНИ НА СВОЙ НИК
 
 # Настройка Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
 client_sheet = gspread.authorize(creds)
+# Открываем таблицу и лист Orders
 sheet = client_sheet.open("Obor-bot-orders").worksheet("Orders")
 
 active_orders_lock = {}
@@ -31,6 +31,7 @@ cancelled_orders = set()
 def save_to_sheets(order_id, data):
     try:
         now = datetime.now().strftime('%d.%m %H:%M')
+        # Колонки: A:order_id, B:date, C:name, D:phone, E:items, F:status, G:address
         row = [order_id, now, data.get('name'), data.get('phone'), data.get('what'), "🆕 НОВЫЙ",
                f"{data.get('lat')}, {data.get('lon')}" if data.get('lat') else "Посылка"]
         sheet.append_row(row)
@@ -48,24 +49,31 @@ def update_sheet_status(order_id, new_status):
 
 @dp.message(Command("start"))
 async def start(message: Message):
-    # ДОБАВИЛИ КНОПКУ ПОДДЕРЖКИ В МЕНЮ
     kb = ReplyKeyboardMarkup(keyboard=[
         [KeyboardButton(text="🚀 Заказать / Buyurtma berish",
                         web_app=WebAppInfo(url="https://kamronking.github.io/obor-bot/"))],
         [KeyboardButton(text="🆘 Поддержка / Support")]
     ], resize_keyboard=True)
-    await message.answer("🇷🇺 Сделайте заказ или напишите нам.\n🇺🇿 Buyurtma bering yoki bizga yozing.", reply_markup=kb)
+
+    welcome_text = (
+        "🇷🇺 <b>Добро пожаловать в OBOR!</b>\n\n"
+        "💳 <b>Тарифы:</b>\n"
+        "• Продукты до 200к — 23.000 сум\n"
+        "• Продукты свыше 200к — 15% от чека\n"
+        "• Посылки до 10кг — 23.000 сум\n\n"
+        "🇺🇿 <b>OBOR-ga xush kelibsiz!</b>\n\n"
+        "💳 <b>Tariflar:</b>\n"
+        "• Mahsulotlar 200к gacha — 23.000 so'm\n"
+        "• Mahsulotlar 200к dan oshsa — chekdan 15%\n"
+        "• Posilkalar 10kg gacha — 23.000 so'm"
+    )
+    await message.answer(welcome_text, reply_markup=kb, parse_mode="HTML")
 
 
-# ОБРАБОТКА КНОПКИ ПОДДЕРЖКИ
 @dp.message(F.text.contains("Поддержка") | F.text.contains("Support"))
 async def support_handler(message: Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👨‍💻 Написать админу / Admin bilan bog'lanish", url=SUPPORT_URL)]
-    ])
-    await message.answer(
-        "🇷🇺 Нажмите кнопку ниже, чтобы написать администратору:\n🇺🇿 Admin bilan bog'lanish uchun pastdagi tugmani bosing:",
-        reply_markup=kb)
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="👨‍💻 Написать админу", url=SUPPORT_URL)]])
+    await message.answer("🇷🇺 Напишите администратору по любым вопросам:", reply_markup=kb)
 
 
 @dp.message(F.web_app_data)
@@ -75,8 +83,10 @@ async def handle_webapp(message: Message):
     lang = data.get('lang', 'ru')
     save_to_sheets(oid, data)
 
-    type_str = "📦 ПОСЫЛКА / POSILKA" if data['type'] == 'parcel' else "🛒 ПРОДУКТЫ / MAHSULOTLAR"
-    details = f"📝 Что: {data['what']}\n👤 Клиент: {data['name']} ({data['phone']})"
+    type_str = "📦 ПОСЫЛКА (до 10кг)" if data['type'] == 'parcel' else "🛒 ПРОДУКТЫ"
+    price_info = "💳 Тариф: 23.000 сум" if data['type'] == 'parcel' else "💳 Тариф: 23к (<200к) / 15% (>200к)"
+
+    details = f"📝 Что: {data['what']}\n👤 Клиент: {data['name']} ({data['phone']})\n{price_info}"
     if data['type'] == 'parcel': details += f"\n👤 Кому: {data['rec_name']} ({data['rec_phone']})"
 
     loc_link = f"📍 <a href='http://maps.google.com/maps?q={data['lat']},{data['lon']}'>КАРТА</a>" if data[
@@ -88,7 +98,6 @@ async def handle_webapp(message: Message):
     for aid in ADMIN_IDS:
         await bot.send_message(aid, text_adm, reply_markup=kb_adm, parse_mode="HTML", disable_web_page_preview=True)
 
-    # ДОБАВИЛИ КНОПКУ ПОДДЕРЖКИ И СЮДА ТОЖЕ
     kb_cancel = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="❌ ОТМЕНИТЬ / BEKOR QILISH", callback_data=f"can_{oid}_{lang}")],
         [InlineKeyboardButton(text="🆘 Поддержка / Support", url=SUPPORT_URL)]
@@ -108,6 +117,7 @@ async def accept_order(callback: CallbackQuery):
 
     active_orders_lock[oid] = callback.from_user.first_name
     update_sheet_status(oid, f"🚕 В ПУТИ ({callback.from_user.first_name})")
+
     kb_done = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🏁 ДОСТАВИЛ / YETKAZDIM", callback_data=f"done_{oid}_{uid}_{lang}")]])
     await callback.message.edit_text(callback.message.html_text + f"\n\n🤝 <b>ВЗЯЛ: {callback.from_user.first_name}</b>",
@@ -120,8 +130,10 @@ async def cancel_order(callback: CallbackQuery):
     _, oid, lang = callback.data.split("_")
     if oid in active_orders_lock:
         return await callback.answer("Нельзя отменить! Курьер уже в пути.", show_alert=True)
+
     cancelled_orders.add(oid)
     update_sheet_status(oid, "❌ ОТМЕНЕН КЛИЕНТОМ")
+
     await callback.message.edit_text("❌ Заказ отменен / Buyurtma bekor qilindi")
     for aid in ADMIN_IDS: await bot.send_message(aid, f"🚫 Заказ #{oid} отменен клиентом.")
 
