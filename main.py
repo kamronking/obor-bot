@@ -26,15 +26,18 @@ sheet = client_sheet.open("Obor-bot-orders").worksheet("Orders")
 active_orders_lock = {}
 cancelled_orders = set()
 
-# ТЕКСТ ТАРИФОВ (БЕЗ ОПАСНЫХ СИМВОЛОВ)
+# ТЕКСТ ТАРИФОВ НА ДВУХ ЯЗЫКАХ (БЕЗ ОШИБОК)
 PRICES_TEXT = (
     "💳 <b>TARIFLAR / ТАРИФЫ:</b>\n\n"
     "🛒 <b>Mahsulotlar / Продукты:</b>\n"
-    "• 200.000 so'mgacha — <b>23.000 so'm</b>\n"
-    "• 200.000 so'mdan yuqori — <b>15%</b>\n\n"
+    "🇷🇺 До 200.000 сум — <b>23.000 сум</b>\n"
+    "🇷🇺 Свыше 200.000 сум — <b>15% от чека</b>\n"
+    "🇺🇿 200.000 so'mgacha — <b>23.000 so'm</b>\n"
+    "🇺🇿 200.000 so'mdan yuqori — <b>15% chekdan</b>\n\n"
     "📦 <b>Posilka / Посылка:</b>\n"
-    "• 10 kg gacha — <b>23.000 so'm</b>\n"
-    "<i>(Faqat 10 kg gacha bo'lgan yuklar qabul qilinadi)</i>"
+    "🇷🇺 До 10 кг — <b>23.000 сум</b>\n"
+    "🇺🇿 10 kg gacha — <b>23.000 so'm</b>\n"
+    "<i>(Принимаем только до 10 кг / Faqat 10 kg gacha)</i>"
 )
 
 
@@ -63,13 +66,11 @@ async def start(message: Message):
                         web_app=WebAppInfo(url="https://kamronking.github.io/obor-bot/"))],
         [KeyboardButton(text="💳 Цены / Tariflar"), KeyboardButton(text="🆘 Поддержка / Support")]
     ], resize_keyboard=True)
-
     await message.answer("🇷🇺 Добро пожаловать в OBOR!\n🇺🇿 OBOR-ga xush kelibsiz!", reply_markup=kb)
 
 
 @dp.message(F.text.contains("Цены") | F.text.contains("Tariflar"))
 async def prices_handler(message: Message):
-    # Теперь здесь обычный текст без знаков < >, ошибка не повторится
     await message.answer(PRICES_TEXT, parse_mode="HTML")
 
 
@@ -87,7 +88,6 @@ async def handle_webapp(message: Message):
     save_to_sheets(oid, data)
 
     type_str = "📦 ПОСЫЛКА" if data['type'] == 'parcel' else "🛒 ПРОДУКТЫ"
-    # Описание тарифа для курьера тоже словами
     price_info = "💳 Тариф: 23.000 сум" if data['type'] == 'parcel' else "💳 Тариф: 23к (до 200к) / 15% (свыше 200к)"
 
     details = f"📝 Что: {data['what']}\n👤 Клиент: {data['name']} ({data['phone']})\n{price_info}"
